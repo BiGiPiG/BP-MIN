@@ -1,0 +1,25 @@
+# Default ignored files
+/shelf/
+/.idea/workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
+# Datasource local storage ignored files
+/dataSources/
+/dataSources.local.xml
+
+*.xml
+*.iml
+.gitignore
+.idea/
+
+#Server
+server/mvnw
+server/mvnw.cmd
+server/HELP.md
+server/.gitattributes
+server/.mvn/
+server/target/
+
+#Client
+client/README.md
+client/.vscode
