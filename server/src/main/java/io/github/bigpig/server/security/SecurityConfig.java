@@ -35,7 +35,7 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable);
 
         http.authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/login/**","/registration/**", "/css/**", "/refresh_token/**", "/")
+                    auth.requestMatchers("/signin/**","/signup/**", "/css/**", "/refresh_token/**", "/")
                             .permitAll();
                     auth.requestMatchers("/admin/**").hasAuthority("ADMIN");
                     auth.anyRequest().authenticated();

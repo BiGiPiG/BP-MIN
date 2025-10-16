@@ -21,7 +21,7 @@ public class AuthenticationController {
 
     private final UserService userService;
 
-    @PostMapping("/registration")
+    @PostMapping("/signup")
     public ResponseEntity<String> register(
             @RequestBody RegistrationRequestDto registrationDto) {
 
@@ -38,7 +38,7 @@ public class AuthenticationController {
         return ResponseEntity.ok("Регистрация прошла успешно");
     }
 
-    @PostMapping("/login")
+    @PostMapping("/signin")
     public ResponseEntity<AuthenticationResponseDto> authenticate(
             @RequestBody LoginRequestDto request) {
 
