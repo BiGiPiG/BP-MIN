@@ -10,3 +10,15 @@ services:
       - ./postgres-data:/var/lib/postgresql/data
     ports:
       - "5435:5432"
+    container_name: bp-min-db
+
+  client:
+    build: ./client
+    ports:
+      - "5173:5173"
+    container_name: bp-min-client
+    networks:
+      - bp-min
+
+networks:
+  bp-min:
