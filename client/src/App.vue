@@ -17,8 +17,4 @@ body {
   max-width: 100vw;
 }
 
-#app {
-  height: 100%;
-  overflow: hidden;
-}
 </style>
