@@ -1,11 +1,24 @@
-<script setup></script>
+<script setup>
+import LoginPage from "@/components/LoginPage.vue";
+</script>
 
 <template>
-  <h1>You did it!</h1>
-  <p>
-    Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-    documentation
-  </p>
+  <LoginPage />
 </template>
 
-<style scoped></style>
+<style>
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  width: 100vw;
+  max-width: 100vw;
+}
+
+#app {
+  height: 100%;
+  overflow: hidden;
+}
+</style>
