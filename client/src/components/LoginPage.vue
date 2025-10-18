@@ -1,11 +1,17 @@
 <script setup>
 import {onMounted, ref} from 'vue'
 
+const accessToken = ref('')
+const refreshToken = ref('')
+
 const email = ref('')
 const password = ref('')
 const username = ref('')
 const confirmPassword = ref('')
 const showLogin = ref(true)
+
+const usernameError = ref('')
+const emailError = ref('')
 
 const particles = ref([])
 
@@ -28,28 +34,61 @@ const toggleForm = () => {
   showLogin.value = !showLogin.value
 }
 
-const handleSignin = () => {
-  console.log('Login:', { email: email.value, password: password.value })
+const handleSignin = async () => {
+  console.log('Login:', {email: email.value, password: password.value})
+  const response = await fetch("http://localhost:8080/api/auth/signin", {
+    method: "POST",
+    body: JSON.stringify({
+      username: username.value,
+      password: password.value
+    }),
+    headers: {
+      "Content-type": "application/json",
+    },
+  })
+
+  if (response.ok) {
+    const data = await response.json()
+    accessToken.value = data.accessToken
+    refreshToken.value = data.refreshToken
+  } else {
+    console.log("error")
+  }
 }
 
-const handleSignup = () => {
-  console.log('Signup:', { username: username.value, password: password.value })
-  fetch("http://localhost:8080/api/v1/signin",
-      {
-        method: "POST",
-        body: JSON
-            .stringify
-            ({
-              username: username.value,
-              email: email.value,
-              password: password.value
-            }),
-        headers: {
-          "Content-type": "application/json",
-        },
-      })
-      .then((response) => response.json())
-      .then((json) => console.log(json));
+const handleSignup = async () => {
+  usernameError.value = ''
+  emailError.value = ''
+
+  try {
+    const response = await fetch("http://localhost:8080/api/auth/signup", {
+      method: "POST",
+      body: JSON.stringify({
+        username: username.value,
+        email: email.value,
+        password: password.value
+      }),
+      headers: {
+        "Content-type": "application/json",
+      },
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      if (data.message === "Username is already taken") {
+        usernameError.value = "Username is already taken"
+      } else if (data.message === "Email is already taken") {
+        emailError.value = "Email is already taken"
+      } else {
+        console.error("Signup error:", data.message)
+      }
+    } else {
+      toggleForm()
+    }
+  } catch (error) {
+    console.error("Network error:", error)
+  }
 }
 </script>
 
@@ -73,10 +112,10 @@ const handleSignup = () => {
 
     <div class="form-container">
       <div class="form-card login-card" :class="{ active: showLogin }">
-        <h2>BP MIN</h2>
+        <h2>SIGN IN</h2>
         <div class="input-group">
-          <span class="icon">✉️</span>
-          <input type="email" v-model="email" placeholder="email" required />
+          <span class="icon">👤</span>
+          <input type="email" v-model="username" placeholder="username" required />
         </div>
         <div class="input-group password-input">
           <span class="icon">🔒</span>
@@ -92,7 +131,11 @@ const handleSignup = () => {
         <h2>SIGN UP</h2>
         <div class="input-group">
           <span class="icon">👤</span>
-          <input type="text" v-model="username" placeholder="username" required />
+          <input type="text" v-model="username" :placeholder="usernameError || 'username'" required />
+        </div>
+        <div class="input-group">
+          <span class="icon">✉️</span>
+          <input type="text" v-model="email" :placeholder="emailError || 'email'" required />
         </div>
         <div class="input-group">
           <span class="icon">🔑</span>
