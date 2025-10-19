@@ -1,8 +1,8 @@
 <script setup>
 import {onMounted, ref} from 'vue'
+import { useRouter } from 'vue-router';
 
-const accessToken = ref('')
-const refreshToken = ref('')
+const router = useRouter()
 
 const email = ref('')
 const password = ref('')
@@ -48,13 +48,28 @@ const handleSignin = async () => {
   })
 
   if (response.ok) {
-    const data = await response.json()
-    accessToken.value = data.accessToken
-    refreshToken.value = data.refreshToken
+    const data = await response.json();
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+
+    const payload = parseJwt(data.accessToken);
+    const username = payload?.sub;
+
+    if (username) {
+      await router.push(`/bp-min/${username}`);
+    }
   } else {
     console.log("error")
   }
 }
+
+const parseJwt = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+  } catch (e) {
+    return null;
+  }
+};
 
 const handleSignup = async () => {
   usernameError.value = ''
