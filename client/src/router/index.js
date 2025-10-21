@@ -25,21 +25,47 @@ const router = createRouter({
   history: createWebHistory()
 })
 
-router.beforeEach((to, from, next) => {
-  const requiresAuth = to.matched.some(record =>
-      record.meta && record.meta.requiresAuth === true
-  );
-  const token = localStorage.getItem('accessToken');
+router.beforeEach(async (to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta?.requiresAuth === true);
+  const accessToken = localStorage.getItem('accessToken');
+  const refreshToken = localStorage.getItem('refreshToken');
 
-  if (requiresAuth && (!token || isTokenExpired(token))) {
-    next({ name: 'Login' });
-  } else if (to.name === 'Login' && token && !isTokenExpired(token)) {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    const username = payload.sub;
-    next({ name: 'BpMin', params: { username } });
-  } else {
-    next();
+  if (!requiresAuth) {
+    return next();
   }
+
+  if (!accessToken || !refreshToken) {
+    return next({ name: 'Login' });
+  }
+
+  if (!isTokenExpired(accessToken)) {
+    return next();
+  }
+
+  console.log("refreshing")
+  const response = await fetch('/api/auth/refresh_token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${refreshToken}`
+    }
+  });
+
+  if (!response.ok) {
+    console.error("Refresh failed");
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    next({ name: 'Login' });
+    return;
+  }
+
+  const data = await response.json();
+  data.refreshToken = undefined;
+  data.accessToken = undefined;
+  localStorage.setItem('accessToken', data.accessToken);
+  localStorage.setItem('refreshToken', data.refreshToken);
+  console.log(data.accessToken)
+
+  next();
 });
 
 export default router
