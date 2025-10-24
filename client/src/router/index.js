@@ -43,7 +43,6 @@ router.beforeEach(async (to, from, next) => {
   }
 
   console.log("refreshing")
-  console.log(refreshToken)
   const response = await fetch('/api/auth/refresh_token', {
     method: 'POST',
     headers: {
