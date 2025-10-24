@@ -43,11 +43,12 @@ router.beforeEach(async (to, from, next) => {
   }
 
   console.log("refreshing")
+  console.log(refreshToken)
   const response = await fetch('/api/auth/refresh_token', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${refreshToken}`
-    }
+    },
   });
 
   if (!response.ok) {
@@ -58,12 +59,14 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  const data = await response.json();
-  data.refreshToken = undefined;
-  data.accessToken = undefined;
-  localStorage.setItem('accessToken', data.accessToken);
-  localStorage.setItem('refreshToken', data.refreshToken);
-  console.log(data.accessToken)
+  try {
+    const data = await response.json();
+    localStorage.setItem('accessToken', data.accessToken);
+    localStorage.setItem('refreshToken', data.refreshToken);
+  } catch(error) {
+    console.error('Missing tokens in response:', error);
+    next({ name: 'Login' });
+  }
 
   next();
 });

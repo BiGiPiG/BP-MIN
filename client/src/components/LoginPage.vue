@@ -36,7 +36,7 @@ const toggleForm = () => {
 
 const handleSignin = async () => {
   console.log('Login:', {email: email.value, password: password.value})
-  const response = await fetch("http://localhost:8080/api/auth/signin", {
+  const response = await fetch("/api/auth/signin", {
     method: "POST",
     body: JSON.stringify({
       username: username.value,
@@ -76,7 +76,7 @@ const handleSignup = async () => {
   emailError.value = ''
 
   try {
-    const response = await fetch("http://localhost:8080/api/auth/signup", {
+    const response = await fetch("/api/auth/signup", {
       method: "POST",
       body: JSON.stringify({
         username: username.value,
