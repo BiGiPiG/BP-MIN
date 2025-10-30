@@ -35,7 +35,6 @@ const toggleForm = () => {
 }
 
 const handleSignin = async () => {
-  console.log('Login:', {email: email.value, password: password.value})
   const response = await fetch("/api/auth/signin", {
     method: "POST",
     body: JSON.stringify({
@@ -56,6 +55,8 @@ const handleSignin = async () => {
     const username = payload?.sub;
 
     if (username) {
+      localStorage.setItem('username', username);
+      console.log(username);
       await router.push(`/bp-min/${username}`);
     }
   } else {
@@ -176,6 +177,7 @@ const handleSignup = async () => {
 
 .login-container {
   min-height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -184,6 +186,8 @@ const handleSignup = async () => {
   overflow: hidden;
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: linear-gradient(135deg, #8e44ad, #6a3093);
+  margin: 0;
+  padding: 0;
 }
 
 .background {
@@ -239,7 +243,6 @@ const handleSignup = async () => {
 .form-container {
   display: flex;
   gap: 20px;
-  margin-bottom: 40px;
   position: relative;
   z-index: 3;
 }
