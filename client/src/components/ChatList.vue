@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 
-const currentChatId = ref(null) // Храним ID вместо имени
+const currentChatId = ref(null)
+
+const emit = defineEmits(['chat-selected'])
 
 const props = defineProps({
   chats: {
@@ -48,7 +50,9 @@ function getChatInitial(chat) {
 }
 
 function switchActive(chat) {
-  currentChatId.value = chat.id // Сохраняем ID чата
+  currentChatId.value = chat.id
+  const chatName = getChatname(chat)
+  emit('chat-selected', chat, chatName)
 }
 
 // Computed для оптимизации
