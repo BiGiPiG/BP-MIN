@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import ChatList from '@/components/ChatList.vue'
 import ChatView from '@/components/ChatView.vue'
+import SearchBar from '@/components/SearchBar.vue'
 import { useChats } from "@/utils/useChats.js"
 
 let chats = [
@@ -28,21 +29,33 @@ let chats = [
     ]
   }
 ]
+
+const activeChatName = ref('')
+const activeChat = ref(null)
+
+const handleChatSelected = (chat, chatName) => {
+  activeChatName.value = chatName
+  activeChat.value = chat
+}
+
 </script>
 
 <template>
   <div class="sideBar">
-    <div class="searchBar">
-
+    <div class="SearchBar">
+      <searchBar/>
     </div>
     <div class="chatListWrapper">
       <ChatList
         :chats="chats"
+        @chat-selected="handleChatSelected"
       />
     </div>
   </div>
   <main>
       <ChatView
+          :chatName="activeChatName"
+          :chat="activeChat"
       />
   </main>
 </template>
