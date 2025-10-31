@@ -1,55 +1,171 @@
 <script setup>
-import { ref, defineEmits } from 'vue'
+import { ref, defineEmits, onMounted, computed } from 'vue'
 
-const emit = defineEmits(['go-back'])
+const emit = defineEmits(['return-to-list'])
 
 const props = defineProps({
-  activeChatName: String,
-  activeChat: Object
+  currentConversationName: String,
+  currentConversation: [Object, null]
 })
 
-let displayMessages = [
+let conversationHistory = [
   {
-    sender: "BiGPiG",
-    text: "Hi, bro)",
-    time: "10:30"
+    author: "BiGPiG",
+    content: "Hi, bro)",
+    timestamp: "10:30"
   }
 ]
 
-const username = localStorage.getItem('username');
+const currentUser = localStorage.getItem('username');
 
-function sendMessage() {
-  console.log("send");
+function submitMessage() {
+  console.log("send message");
 }
 
+const floatingElements = ref([])
+
+onMounted(() => {
+  console.log(props.currentConversation);
+  const elementsArray = []
+  for (let i = 0; i < 25; i++) {
+    elementsArray.push({
+      id: i,
+      positionY: Math.random() * 100,
+      positionX: Math.random() * 100,
+      dimension: 8 + (i % 12),
+      startDelay: (i % 5) * 0.8,
+      animationLength: 3 + (i % 4)
+    })
+  }
+  floatingElements.value = elementsArray
+})
 </script>
 
 <template>
-  <div class="chat-container">
-    <div class="chat-header">
-      <button @click="$emit('go-back')" class="back-btn">←</button>
-      <div class="chat-title">{{ activeChatName }}</div>
+  <div v-if="!props.currentConversation" class="conversation-placeholder">
+    <div class="animated-background">
+      <div
+          v-for="element in floatingElements"
+          :key="element.id"
+          class="floating-dot"
+          :style="{
+          top: `${element.positionY}%`,
+          left: `${element.positionX}%`,
+          width: `${element.dimension}px`,
+          height: `${element.dimension}px`,
+          animationDelay: `${element.startDelay}s`,
+          animationDuration: `${element.animationLength}s`
+        }"
+      ></div>
     </div>
 
-    <div class="messages-wrapper">
-      <div v-for="(msg, index) in displayMessages" :key="index" class="message-row">
-        <div :class="msg.sender === username ? 'message sent' : 'message received'">
-          <div class="message-text">{{ msg.text }}</div>
-          <div class="message-time">{{ msg.time }}</div>
+    <div class="placeholder-content">
+      <div class="placeholder-card">
+        <h2>Select a conversation to start chatting</h2>
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="conversation-interface">
+    <div class="conversation-header">
+      <button @click="$emit('return-to-list')" class="navigation-button">←</button>
+      <div class="contact-name">{{ currentConversationName }}</div>
+    </div>
+
+    <div class="messages-container">
+      <div v-for="(message, idx) in conversationHistory" :key="idx" class="message-container">
+        <div :class="message.author === currentUser ? 'message-bubble outgoing' : 'message-bubble incoming'">
+          <div class="message-content">{{ message.content }}</div>
+          <div class="message-meta">{{ message.timestamp }}</div>
         </div>
       </div>
     </div>
 
-    <div class="input-area">
-      <input type="text" placeholder="Type a message..." class="message-input" />
-      <button @click="sendMessage" class="send-btn">Send</button>
+    <div class="message-composer">
+      <input type="text" placeholder="Type your message..." class="composer-input" />
+      <button @click="submitMessage" class="send-button">Send</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.chat-container {
-  background: linear-gradient(135deg, #faf8ff 0%, #fff7ed 100%);
+.conversation-placeholder {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.animated-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.floating-dot {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  animation: gentle-float 5s infinite ease-in-out;
+  z-index: 2;
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+}
+
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.6;
+  }
+  25% {
+    transform: translate(12px, -18px) scale(1.15);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-8px, 12px) scale(0.85);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translate(18px, 8px) scale(1.08);
+    opacity: 0.9;
+  }
+}
+
+.placeholder-content {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  color: white;
+  padding: 0 24px;
+}
+
+.placeholder-card {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 40px 32px;
+  max-width: 520px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.placeholder-card h2 {
+  font-size: 26px;
+  margin: 0 0 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.conversation-interface {
+  background: linear-gradient(135deg, #f8faff 0%, #fef7ed 100%);
   width: 100%;
   height: 100vh;
   display: flex;
@@ -59,267 +175,288 @@ function sendMessage() {
   position: relative;
 }
 
-.chat-container::before {
+.conversation-interface::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #7e4aff, #f97316, transparent);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #667eea, #f093fb, transparent);
+  z-index: 2;
 }
 
-.chat-header {
+.conversation-header {
   display: flex;
   align-items: center;
-  padding-left: 24px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(126, 74, 255, 0.1);
-  box-shadow: 0 2px 20px rgba(126, 74, 255, 0.1);
-  height: 50px;
+  padding: 0 24px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(102, 126, 234, 0.15);
+  box-shadow: 0 2px 24px rgba(102, 126, 234, 0.12);
+  height: 68px;
+  z-index: 10;
 }
 
-.back-btn {
-  background: linear-gradient(135deg, #7e4aff, #a78bfa);
+.navigation-button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
   border: none;
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   color: white;
-  margin-right: 16px;
-  width: 40px;
-  height: 40px;
+  margin-right: 20px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(126, 74, 255, 0.3);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.35);
 }
 
-.back-btn:hover {
-  background: linear-gradient(135deg, #f97316, #fdba74);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+.navigation-button:hover {
+  background: linear-gradient(135deg, #f093fb, #f5576c);
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 24px rgba(245, 87, 108, 0.45);
 }
 
-.chat-title {
-  font-size: 20px;
+.contact-name {
+  font-size: 22px;
   font-weight: 700;
-  background: linear-gradient(135deg, #7e4aff, #f97316);
+  background: linear-gradient(135deg, #667eea, #f093fb);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.messages-wrapper {
+.messages-container {
   flex: 1;
-  padding: 24px;
+  padding: 28px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   background:
-      radial-gradient(circle at 20% 80%, rgba(126, 74, 255, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(249, 115, 22, 0.05) 0%, transparent 50%);
+      radial-gradient(circle at 15% 75%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 85% 25%, rgba(240, 147, 251, 0.08) 0%, transparent 50%);
 }
 
-.message-row {
+.message-container {
   display: flex;
   width: 100%;
 }
 
-.message-row .sent {
+.message-container .outgoing {
   margin-left: auto;
   justify-content: flex-end;
 }
 
-.message-row .received {
+.message-container .incoming {
   margin-right: auto;
   justify-content: flex-start;
 }
 
-.message {
-  max-width: 70%;
-  padding: 16px 20px;
-  border-radius: 20px;
+.message-bubble {
+  max-width: 65%;
+  padding: 18px 22px;
+  border-radius: 22px;
   position: relative;
   word-break: break-word;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
 }
 
-.message:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+.message-bubble:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
 }
 
-.message.received {
-  background: linear-gradient(135deg, #ffffff, #f8f7ff);
-  border: 1px solid rgba(126, 74, 255, 0.1);
-  border-bottom-left-radius: 6px;
-  border-top-left-radius: 6px;
+.message-bubble.incoming {
+  background: linear-gradient(135deg, #ffffff, #f8faff);
+  border: 1px solid rgba(102, 126, 234, 0.15);
+  border-bottom-left-radius: 8px;
+  border-top-left-radius: 8px;
 }
 
-.message.received::before {
+.message-bubble.incoming::before {
   content: '';
   position: absolute;
-  left: -8px;
+  left: -10px;
   top: 0;
-  width: 8px;
+  width: 10px;
   height: 100%;
-  background: linear-gradient(180deg, #7e4aff, #a78bfa);
-  border-radius: 4px 0 0 4px;
+  background: linear-gradient(180deg, #667eea, #764ba2);
+  border-radius: 6px 0 0 6px;
 }
 
-.message.sent {
-  background: linear-gradient(135deg, #7e4aff, #f97316);
+.message-bubble.outgoing {
+  background: linear-gradient(135deg, #667eea, #f093fb);
   color: white;
-  border-bottom-right-radius: 6px;
-  border-top-right-radius: 6px;
-  box-shadow: 0 4px 20px rgba(126, 74, 255, 0.3);
+  border-bottom-right-radius: 8px;
+  border-top-right-radius: 8px;
+  box-shadow: 0 6px 24px rgba(102, 126, 234, 0.35);
 }
 
-.message.sent::before {
+.message-bubble.outgoing::before {
   content: '';
   position: absolute;
-  right: -8px;
+  right: -10px;
   top: 0;
-  width: 8px;
+  width: 10px;
   height: 100%;
-  background: linear-gradient(180deg, #f97316, #fdba74);
-  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #f093fb, #f5576c);
+  border-radius: 0 6px 6px 0;
 }
 
-.message-text {
-  font-size: 15px;
-  line-height: 1.4;
-  margin-bottom: 4px;
+.message-content {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-bottom: 6px;
 }
 
-.message-time {
-  font-size: 11px;
-  opacity: 0.8;
-  margin-top: 6px;
+.message-meta {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 8px;
   text-align: right;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.message.received .message-time {
-  color: #8b5cf6;
+.message-bubble.incoming .message-meta {
+  color: #667eea;
 }
 
-.message.sent .message-time {
-  color: rgba(255, 255, 255, 0.9);
+.message-bubble.outgoing .message-meta {
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.input-area {
+.message-composer {
   display: flex;
-  padding: 20px 24px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(126, 74, 255, 0.1);
-  gap: 12px;
+  padding: 24px 28px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(102, 126, 234, 0.15);
+  gap: 16px;
 }
 
-.message-input {
+.composer-input {
   flex: 1;
-  padding: 16px 20px;
-  border: 2px solid rgba(126, 74, 255, 0.2);
-  border-radius: 16px;
+  padding: 18px 22px;
+  border: 2px solid rgba(102, 126, 234, 0.25);
+  border-radius: 18px;
   outline: none;
-  font-size: 15px;
-  background: rgba(248, 247, 255, 0.8);
+  font-size: 16px;
+  background: rgba(248, 250, 255, 0.9);
   transition: all 0.3s ease;
   color: #333;
 }
 
-.message-input:focus {
-  border-color: #7e4aff;
+.composer-input:focus {
+  border-color: #667eea;
   background: white;
-  box-shadow: 0 0 0 4px rgba(126, 74, 255, 0.15);
+  box-shadow: 0 0 0 5px rgba(102, 126, 234, 0.2);
 }
 
-.message-input::placeholder {
-  color: #a78bfa;
+.composer-input::placeholder {
+  color: #a3b1f1;
+  font-weight: 500;
 }
 
-.send-btn {
-  background: linear-gradient(135deg, #7e4aff, #f97316);
+.send-button {
+  background: linear-gradient(135deg, #667eea, #f093fb);
   color: white;
   border: none;
-  border-radius: 16px;
-  padding: 16px 24px;
+  border-radius: 18px;
+  padding: 18px 28px;
   cursor: pointer;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 16px;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(126, 74, 255, 0.3);
-  min-width: 80px;
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  min-width: 90px;
 }
 
-.send-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(126, 74, 255, 0.4);
-  background: linear-gradient(135deg, #f97316, #7e4aff);
+.send-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 28px rgba(102, 126, 234, 0.45);
+  background: linear-gradient(135deg, #f093fb, #667eea);
 }
 
 /* Стили для скроллбара */
-.messages-wrapper::-webkit-scrollbar {
-  width: 6px;
+.messages-container::-webkit-scrollbar {
+  width: 8px;
 }
 
-.messages-wrapper::-webkit-scrollbar-track {
-  background: rgba(126, 74, 255, 0.05);
-  border-radius: 3px;
+.messages-container::-webkit-scrollbar-track {
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 4px;
 }
 
-.messages-wrapper::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #7e4aff, #f97316);
-  border-radius: 3px;
+.messages-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea, #f093fb);
+  border-radius: 4px;
 }
 
-.messages-wrapper::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #f97316, #7e4aff);
+.messages-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #f093fb, #667eea);
 }
 
 /* Анимации */
-.message {
-  animation: messageAppear 0.3s ease-out;
+.message-bubble {
+  animation: bubble-appear 0.4s ease-out;
 }
 
-@keyframes messageAppear {
+@keyframes bubble-appear {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(15px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 /* Адаптивность */
 @media (max-width: 768px) {
-  .chat-container {
+  .conversation-interface {
     border-radius: 0;
   }
 
-  .chat-header {
+  .messages-container {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .message-composer {
+    padding: 20px 16px;
+  }
+
+  .message-bubble {
+    max-width: 80%;
     padding: 16px 20px;
   }
 
-  .messages-wrapper {
-    padding: 16px 20px;
+  .conversation-header {
+    padding: 0 16px;
+    height: 60px;
   }
 
-  .input-area {
-    padding: 16px 20px;
+  .navigation-button {
+    width: 40px;
+    height: 40px;
+    margin-right: 16px;
   }
 
-  .message {
-    max-width: 85%;
-    padding: 14px 18px;
+  .placeholder-card {
+    padding: 32px 24px;
+    margin: 0 16px;
+  }
+
+  .placeholder-card h2 {
+    font-size: 22px;
   }
 }
 </style>

@@ -1,7 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-
-const currentChatId = ref(null)
+import { ref, computed } from 'vue'
 
 const emit = defineEmits(['chat-selected'])
 
@@ -10,6 +8,10 @@ const props = defineProps({
     type: Array,
     required: true,
     default: () => []
+  },
+  currentChatId: {
+    type: [String, Number, null],
+    default: null
   }
 })
 
@@ -36,12 +38,12 @@ const chatGradients = computed(() => {
 
 function getChatname(chat) {
   const user = localStorage.getItem('username')
-  if (!chat.participants) return 'Unknown Chat'
+  if (!chat.participantInfo) return 'Unknown Chat'
 
-  const interlocutor = chat.participants.find(participant =>
-      participant.nick !== user
+  const interlocutor = chat.participantInfo.find(participant =>
+      participant.nickname !== user
   )
-  return interlocutor?.nick || 'Unknown User'
+  return interlocutor?.nickname || 'Unknown User'
 }
 
 function getChatInitial(chat) {
@@ -50,18 +52,16 @@ function getChatInitial(chat) {
 }
 
 function switchActive(chat) {
-  currentChatId.value = chat.id
   const chatName = getChatname(chat)
   emit('chat-selected', chat, chatName)
 }
 
-// Computed для оптимизации
 const processedChats = computed(() => {
   return props.chats.map(chat => ({
     ...chat,
     displayName: getChatname(chat),
     initial: getChatInitial(chat),
-    isActive: currentChatId.value === chat.id
+    isActive: props.currentChatId === chat.id
   }))
 })
 </script>

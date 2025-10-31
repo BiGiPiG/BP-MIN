@@ -5,30 +5,11 @@ import ChatView from '@/components/ChatView.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import { useChats } from "@/utils/useChats.js"
 
-let chats = [
-  {
-    id: 1,
-    type: 'DIRECT',
-    title: null,
-    lastMessagePreview: 'Hi, bro)',
-    unread: true,
-    participants: [
-      {nick: 'userok', id: 1},
-      {nick: 'BiGPiG', id: 2}
-    ]
-  },
-  {
-    id: 2,
-    type: 'DIRECT',
-    title: null,
-    lastMessagePreview: 'Call me later',
-    unread: true,
-    participants: [
-      {nick: 'userok', id: 1},
-      {nick: 'Ma', id: 2}
-    ]
-  }
-]
+const { chats, loading, error, fetchChats } = useChats()
+
+onMounted(() => {
+  fetchChats()
+})
 
 const activeChatName = ref('')
 const activeChat = ref(null)
@@ -38,25 +19,41 @@ const handleChatSelected = (chat, chatName) => {
   activeChat.value = chat
 }
 
+const handleReturnToList = () => {
+  activeChatName.value = ''
+  activeChat.value = null
+}
+
 </script>
 
 <template>
   <div class="sideBar">
-    <div class="SearchBar">
-      <searchBar/>
+    <div class="searchBar">
+      <SearchBar />
     </div>
     <div class="chatListWrapper">
+      <div v-if="loading" class="spinner-container">
+        <div class="spinner"></div>
+      </div>
+
+      <div v-else-if="error" class="error-message">
+        Не удалось загрузить чаты. Попробуйте позже.
+      </div>
+
       <ChatList
-        :chats="chats"
-        @chat-selected="handleChatSelected"
+          v-else
+          :chats="chats"
+          @chat-selected="handleChatSelected"
+          :currentChatId="activeChat?.id"
       />
     </div>
   </div>
   <main>
-      <ChatView
-          :chatName="activeChatName"
-          :chat="activeChat"
-      />
+    <ChatView
+        :currentConversationName="activeChatName"
+        :currentConversation="activeChat"
+        @return-to-list="handleReturnToList"
+    />
   </main>
 </template>
 
@@ -161,5 +158,27 @@ main {
   justify-content: center;
   align-items: center;
   color: #666;
+}
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 32px 0;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #f0f0f0;
+  border-top: 3px solid #7e4aff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
