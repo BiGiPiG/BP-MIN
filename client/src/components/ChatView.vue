@@ -1,28 +1,38 @@
 <script setup>
-import { ref, defineEmits, onMounted, computed } from 'vue'
+import { ref, defineEmits, onMounted, computed, watch } from 'vue'
+import { useMessageStore } from '@/utils/useMessages'
 
-const emit = defineEmits(['return-to-list'])
+const emit = defineEmits(['return-to-list', 'send-message'])
+const messageText = ref('')
+const currentUserId = Number(localStorage.getItem('userId'));
+const floatingElements = ref([])
+
+const messageStore = useMessageStore()
 
 const props = defineProps({
   currentConversationName: String,
   currentConversation: [Object, null]
 })
 
-let conversationHistory = [
-  {
-    author: "BiGPiG",
-    content: "Hi, bro)",
-    timestamp: "10:30"
+const conversationHistory = computed(() => {
+  return props.currentConversation?.id
+      ? messageStore.getMessages(props.currentConversation.id)
+      : []
+})
+
+watch(() => props.currentConversation?.id, (chatId) => {
+  if (chatId) {
+    messageStore.loadMessages(chatId)
   }
-]
+})
 
-const currentUser = localStorage.getItem('username');
-
-function submitMessage() {
-  console.log("send message");
+const handleSendMessage = () => {
+  const text = messageText.value.trim()
+  if (text && props.currentConversationName) {
+    emit('send-message', text)
+    messageText.value = ''
+  }
 }
-
-const floatingElements = ref([])
 
 onMounted(() => {
   console.log(props.currentConversation);
@@ -42,7 +52,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-if="!props.currentConversation" class="conversation-placeholder">
+  <div v-if="!props.currentConversationName" class="conversation-placeholder">
     <div class="animated-background">
       <div
           v-for="element in floatingElements"
@@ -68,13 +78,13 @@ onMounted(() => {
 
   <div v-else class="conversation-interface">
     <div class="conversation-header">
-      <button @click="$emit('return-to-list')" class="navigation-button">←</button>
+      <button @click="emit('return-to-list')" class="navigation-button">←</button>
       <div class="contact-name">{{ currentConversationName }}</div>
     </div>
 
     <div class="messages-container">
       <div v-for="(message, idx) in conversationHistory" :key="idx" class="message-container">
-        <div :class="message.author === currentUser ? 'message-bubble outgoing' : 'message-bubble incoming'">
+        <div :class="message.senderId === currentUserId ? 'message-bubble outgoing' : 'message-bubble incoming'">
           <div class="message-content">{{ message.content }}</div>
           <div class="message-meta">{{ message.timestamp }}</div>
         </div>
@@ -82,8 +92,14 @@ onMounted(() => {
     </div>
 
     <div class="message-composer">
-      <input type="text" placeholder="Type your message..." class="composer-input" />
-      <button @click="submitMessage" class="send-button">Send</button>
+      <input
+          v-model="messageText"
+          @keyup.enter="handleSendMessage"
+          type="text"
+          placeholder="Type your message..."
+          class="composer-input"
+      />
+      <button @click="handleSendMessage" class="send-button">Send</button>
     </div>
   </div>
 </template>

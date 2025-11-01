@@ -53,9 +53,11 @@ const handleSignin = async () => {
 
     const payload = parseJwt(data.accessToken);
     const username = payload?.sub;
+    const userId = payload.id;
 
     if (username) {
       localStorage.setItem('username', username);
+      localStorage.setItem('userId', userId);
       console.log(username);
       await router.push(`/bp-min/${username}`);
     }

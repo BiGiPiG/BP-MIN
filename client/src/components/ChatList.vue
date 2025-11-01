@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 
 const emit = defineEmits(['chat-selected'])
 
@@ -73,7 +73,6 @@ const processedChats = computed(() => {
         :key="chat.id"
         class="chat-item"
         :class="{
-          'unread': chat.unread,
           'active': chat.isActive
         }"
         @click="switchActive(chat)"
@@ -89,9 +88,9 @@ const processedChats = computed(() => {
           <div class="title">{{ chat.displayName }}</div>
           <div v-if="chat.unread" class="unreadBadge"></div>
         </div>
-        <div class="lastMessage">{{ chat.lastMessage || chat.lastMessagePreview }}</div>
+        <div class="lastMessage">{{ chat.lastMessagePreview }}</div>
         <div class="chatMeta">
-          <div class="time">12:30</div>
+          <div class="time">{{ chat.lastActivity }}</div>
           <div v-if="chat.unreadCount" class="unreadCount">{{ chat.unreadCount }}</div>
         </div>
       </div>

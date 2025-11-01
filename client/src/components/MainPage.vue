@@ -1,15 +1,62 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import ChatList from '@/components/ChatList.vue'
 import ChatView from '@/components/ChatView.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import { useChats } from "@/utils/useChats.js"
+import { useStomp } from "@/utils/useStomp.js";
+import { useMessageStore } from "@/utils/useMessages.js";
 
-const { chats, loading, error, fetchChats } = useChats()
+const { chats, loading, error, fetchChats, createChat } = useChats()
 
-onMounted(() => {
-  fetchChats()
-})
+const messageStore = useMessageStore()
+
+const {
+  connect,
+  disconnect,
+  subscribeToAllChats,
+  unsubscribeFromAllChats,
+  subscribe,
+  send
+} = useStomp()
+
+onMounted(async () => {
+  await fetchChats();
+
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+    router.push({ name: 'Login' });
+    return;
+  }
+
+  const connectHeaders = { Authorization: `Bearer ${token}` };
+
+  try {
+    await connect("ws://localhost:8080/chats", connectHeaders, () => {
+      subscribe('/user/queue/new-chat', (newChat) => {
+        console.log("====");
+        console.log(newChat);
+        const exists = chats.value.some(chat => chat.id === newChat.id);
+        if (!exists) {
+          chats.value.unshift(newChat);
+          console.log('🆕 Получен новый чат:', newChat);
+        }
+      });
+
+      const chatList = Array.isArray(chats.value) ? chats.value : [];
+      if (chatList.length > 0) {
+        subscribeToAllChats(chatList, (message) => {
+          console.log('📩 Новое сообщение:', message);
+          const parsedMessage = typeof message === 'string' ? JSON.parse(message) : message;
+          messageStore.addMessage(parsedMessage.chatId, parsedMessage);
+        });
+      }
+    });
+  } catch (error) {
+    console.error('❌ WebSocket connection failed:', error);
+    router.push({ name: 'Login' });
+  }
+});
 
 const activeChatName = ref('')
 const activeChat = ref(null)
@@ -24,12 +71,66 @@ const handleReturnToList = () => {
   activeChat.value = null
 }
 
+const sendMessage = async (content) => {
+  const userId = localStorage.getItem('userId');
+  const username = localStorage.getItem('username');
+
+  console.log(activeChat.value);
+  console.log(activeChatName.value);
+
+  if (activeChat.value == null && activeChatName.value != null) {
+    console.log("new Chat")
+    activeChat.value = await createChat({
+      type: 'DIRECT',
+      title: null,
+      participants: [username, activeChatName.value]
+    })
+  }
+
+  if (!activeChat.value?.id || !content?.trim()) {
+    console.warn('Нельзя отправить пустое сообщение или нет активного чата')
+    return
+  }
+
+  const messagePayload = {
+    chatId: activeChat.value.id,
+    senderId: userId,
+    content: content.trim(),
+    timestamp: new Date().toISOString()
+  }
+
+  send('/app/chat', messagePayload)
+}
+
+const handleSearchUser = (chatName) => {
+  const existingChat = chats.value.find(chat =>
+      chat.type === 'PRIVATE' &&
+      chat.participants.some(p => participantInfo.nickname === chatName)
+  );
+
+  if (existingChat) {
+    activeChat.value = existingChat;
+    activeChatName.value = selectedUser.name;
+    return;
+  }
+
+  activeChatName.value = chatName;
+  activeChat.value = null;
+}
+
+import { onUnmounted } from 'vue'
+onUnmounted(() => {
+  unsubscribeFromAllChats()
+  disconnect()
+})
 </script>
 
 <template>
   <div class="sideBar">
     <div class="searchBar">
-      <SearchBar />
+      <SearchBar
+        @user-selected="handleSearchUser"
+      />
     </div>
     <div class="chatListWrapper">
       <div v-if="loading" class="spinner-container">
@@ -53,6 +154,7 @@ const handleReturnToList = () => {
         :currentConversationName="activeChatName"
         :currentConversation="activeChat"
         @return-to-list="handleReturnToList"
+        @send-message="sendMessage"
     />
   </main>
 </template>

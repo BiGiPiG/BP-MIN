@@ -1,14 +1,15 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 
 const props = defineProps({
   placeholder: {
     type: String,
     default: 'Search users...'
   },
-  users: {
-    type: Array,
-    default: () => []
+  apiUrl: {
+    type: String,
+    default: '/api/users/search'
   }
 })
 
@@ -16,30 +17,60 @@ const emit = defineEmits(['user-selected', 'search-change'])
 
 const searchQuery = ref('')
 const isFocused = ref(false)
+const isLoading = ref(false)
+const searchResults = ref([])
+const error = ref(null)
 
-const filteredUsers = computed(() => {
-  if (!searchQuery.value.trim()) return []
+const performSearch = useDebounceFn(async (query) => {
+  if (!query.trim()) {
+    searchResults.value = []
+    return
+  }
 
-  const query = searchQuery.value.toLowerCase()
-  return props.users.filter(user =>
-      user.nick?.toLowerCase().includes(query) ||
-      user.username?.toLowerCase().includes(query) ||
-      user.name?.toLowerCase().includes(query)
-  )
+  isLoading.value = true
+  error.value = null
+
+  try {
+    const response = await fetch("/api/users/" + query, {
+      method: "GET",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const users = await response.json()
+    searchResults.value = users
+  } catch (err) {
+    console.error('Search error:', err)
+    error.value = 'Failed to load users'
+    searchResults.value = []
+  } finally {
+    isLoading.value = false
+  }
+}, 300)
+
+watch(searchQuery, (newQuery) => {
+  emit('search-change', newQuery)
+  performSearch(newQuery)
 })
 
 const handleInput = (event) => {
   searchQuery.value = event.target.value
-  emit('search-change', searchQuery.value)
 }
 
 const selectUser = (user) => {
   searchQuery.value = ''
-  emit('user-selected', user)
+  searchResults.value = []
+  emit('user-selected', user.username)
 }
 
 const clearSearch = () => {
   searchQuery.value = ''
+  searchResults.value = []
   emit('search-change', '')
 }
 </script>
@@ -57,6 +88,7 @@ const clearSearch = () => {
           @blur="isFocused = false"
           @input="handleInput"
       />
+      <div v-if="isLoading" class="loading-spinner"></div>
       <button
           v-if="searchQuery"
           @click="clearSearch"
@@ -66,24 +98,23 @@ const clearSearch = () => {
       </button>
     </div>
 
-    <div v-if="filteredUsers.length > 0 && searchQuery" class="search-results">
+    <div v-if="searchResults.length > 0 && searchQuery" class="search-results">
       <div
-          v-for="user in filteredUsers"
+          v-for="user in searchResults"
           :key="user.id"
           class="user-result"
           @mousedown="selectUser(user)"
       >
         <div class="user-avatar">
-          {{ (user.nick || user.username || user.name)?.charAt(0)?.toUpperCase() }}
+          {{ (user.username)?.charAt(0)?.toUpperCase() }}
         </div>
         <div class="user-info">
-          <div class="user-nick">{{ user.nick || user.username }}</div>
-          <div v-if="user.name" class="user-name">{{ user.name }}</div>
+          <div class="user-name">{{ user.username }}</div>
         </div>
       </div>
     </div>
 
-    <div v-else-if="searchQuery && filteredUsers.length === 0" class="no-results">
+    <div v-else-if="searchQuery && searchResults.length === 0 && !isLoading" class="no-results">
       <div class="no-results-icon">😕</div>
       <div class="no-results-text">No users found</div>
     </div>
@@ -91,6 +122,22 @@ const clearSearch = () => {
 </template>
 
 <style scoped>
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #7e4aff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .search-bar-container {
   position: relative;
   width: 98%;
