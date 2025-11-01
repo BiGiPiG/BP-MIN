@@ -2,22 +2,27 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginPage from "@/components/LoginPage.vue";
 import MainPage from "@/components/MainPage.vue";
 import { isTokenExpired } from "@/utils/jwtUtils.js";
+import { useStomp } from "@/utils/useStomp.js";
+
+const {
+  connect
+} = useStomp()
 
 const router = createRouter({
   routes: [{
     path: '/login',
     name: 'Login',
     component: LoginPage,
-    meta: { requiresAuth: false }
+    meta: {
+      requiresAuth: false
+    }
   },
     {
       path: '/bp-min/:username',
       name: 'BpMin', component: MainPage,
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/',
-      redirect: '/login'
+      meta: {
+        requiresAuth: true
+      }
     },
     {
       path: '/:pathMatch(.*)*',
@@ -26,7 +31,8 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, from, next) => {
-  const requiresAuth = to.matched.some(record => record.meta?.requiresAuth === true);
+  const requiresAuth = to.meta?.requiresAuth === true;
+
   const accessToken = localStorage.getItem('accessToken');
   const refreshToken = localStorage.getItem('refreshToken');
 
