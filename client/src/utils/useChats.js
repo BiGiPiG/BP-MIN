@@ -38,26 +38,23 @@ export function useChats() {
         }
     }
 
-    const createChat = async ({ type, title, participants }) => {
+    const createChat = async (chatData) => {
         const accessToken = localStorage.getItem('accessToken')
         loading.value = true
         error.value = null
 
-        console.log('Creating chat with:', { type, title, participants });
+        console.log('Creating chat with:', chatData);
+
 
         try {
-            const response = await fetch("/api/chats/create", {
-                method: "POST",
+            const response = await fetch('/api/chats/create', {
+                method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    type,
-                    title,
-                    participants
-                })
-            })
+                body: JSON.stringify(chatData)
+            });
 
             if (!response.ok) {
                 const errorMsg = await response.text()
@@ -65,7 +62,6 @@ export function useChats() {
             }
 
             const newChat = await response.json()
-            chats.value.push(newChat)
             return newChat
         } catch (err) {
             error.value = err

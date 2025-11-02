@@ -86,7 +86,7 @@ onMounted(() => {
       <div v-for="(message, idx) in conversationHistory" :key="idx" class="message-container">
         <div :class="message.senderId === currentUserId ? 'message-bubble outgoing' : 'message-bubble incoming'">
           <div class="message-content">{{ message.content }}</div>
-          <div class="message-meta">{{ message.timestamp }}</div>
+          <div class="message-meta">{{ message.sentAt }}</div>
         </div>
       </div>
     </div>

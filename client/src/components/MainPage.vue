@@ -17,7 +17,8 @@ const {
   subscribeToAllChats,
   unsubscribeFromAllChats,
   subscribe,
-  send
+  send,
+  subscribeToChat
 } = useStomp()
 
 onMounted(async () => {
@@ -33,13 +34,12 @@ onMounted(async () => {
 
   try {
     await connect("ws://localhost:8080/chats", connectHeaders, () => {
-      subscribe('/user/queue/new-chat', (newChat) => {
-        console.log("====");
-        console.log(newChat);
+      console.log('🔍 Пытаюсь подписаться на /user/queue/new-chat');
+      subscribe(`/topic/user/${localStorage.getItem('userId')}/chats`, (newChat) => {
+        console.log('🆕 Получен новый чат:', newChat);
         const exists = chats.value.some(chat => chat.id === newChat.id);
         if (!exists) {
           chats.value.unshift(newChat);
-          console.log('🆕 Получен новый чат:', newChat);
         }
       });
 
@@ -75,16 +75,17 @@ const sendMessage = async (content) => {
   const userId = localStorage.getItem('userId');
   const username = localStorage.getItem('username');
 
-  console.log(activeChat.value);
-  console.log(activeChatName.value);
-
   if (activeChat.value == null && activeChatName.value != null) {
-    console.log("new Chat")
+    console.log("===new Chat===")
     activeChat.value = await createChat({
       type: 'DIRECT',
       title: null,
       participants: [username, activeChatName.value]
     })
+    subscribeToChat(activeChat.value.id, (message) => {
+      console.log('📩 Новое сообщение:', message);
+      messageStore.addMessage(message.chatId, message);
+    });
   }
 
   if (!activeChat.value?.id || !content?.trim()) {
@@ -104,13 +105,14 @@ const sendMessage = async (content) => {
 
 const handleSearchUser = (chatName) => {
   const existingChat = chats.value.find(chat =>
-      chat.type === 'PRIVATE' &&
-      chat.participants.some(p => participantInfo.nickname === chatName)
+      chat != null &&
+      Array.isArray(chat.participantInfo) &&
+      chat.participantInfo.some(p => p.nickname === chatName)
   );
 
   if (existingChat) {
     activeChat.value = existingChat;
-    activeChatName.value = selectedUser.name;
+    activeChatName.value = chatName;
     return;
   }
 

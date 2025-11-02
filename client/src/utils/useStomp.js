@@ -83,26 +83,28 @@ export function useStomp() {
 
     const subscribe = (destination, callback) => {
         if (!client.value || !isConnected.value) {
-            console.error('STOMP client not connected')
-            return null
+            console.error('STOMP client not connected');
+            return null;
         }
 
         const subscription = client.value.subscribe(destination, (message) => {
+            console.log(`📥 [${destination}] RAW message.body:`, message.body);
+            console.log(`   typeof body:`, typeof message.body);
+
             try {
-                const body = JSON.parse(message.body)
-                callback(body)
-                messages.value.push(body)
+                const body = typeof message.body === 'string'
+                    ? JSON.parse(message.body)
+                    : message.body;
+                console.log(`📦 [${destination}] Parsed:`, body);
+                callback(body);
             } catch (e) {
-                console.error('Error parsing message:', e)
-                const errorObj = { error: 'Invalid JSON', raw: message.body }
-                callback(errorObj)
+                console.error(`❌ [${destination}] Failed to parse:`, message.body, e);
             }
-        })
+        });
 
-        subscriptions.value.set(destination, subscription)
-
-        return () => unsubscribe(destination)
-    }
+        subscriptions.value.set(destination, subscription);
+        return () => unsubscribe(destination);
+    };
 
     const subscribeToAllChats = (chats, messageCallback) => {
         if (!chats || !Array.isArray(chats)) {

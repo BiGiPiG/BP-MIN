@@ -86,13 +86,13 @@ const processedChats = computed(() => {
       <div class="chatContent">
         <div class="titleRow">
           <div class="title">{{ chat.displayName }}</div>
-          <div v-if="chat.unread" class="unreadBadge"></div>
+<!--          <div v-if="chat.unread" class="unreadBadge"></div>-->
         </div>
-        <div class="lastMessage">{{ chat.lastMessagePreview }}</div>
-        <div class="chatMeta">
-          <div class="time">{{ chat.lastActivity }}</div>
-          <div v-if="chat.unreadCount" class="unreadCount">{{ chat.unreadCount }}</div>
-        </div>
+<!--        <div class="lastMessage">{{ chat.lastMessagePreview }}</div>-->
+<!--        <div class="chatMeta">-->
+<!--          <div class="time">{{ chat.lastActivity }}</div>-->
+<!--          <div v-if="chat.unreadCount" class="unreadCount">{{ chat.unreadCount }}</div>-->
+<!--        </div>-->
       </div>
     </div>
   </div>
