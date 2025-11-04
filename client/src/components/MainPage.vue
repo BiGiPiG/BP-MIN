@@ -182,17 +182,6 @@ main {
   z-index: 20;
 }
 
-.searchBar::before {
-  content: '🔍';
-  position: absolute;
-  left: 28px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
-  font-size: 16px;
-  pointer-events: none;
-}
-
 .searchBar input,
 .searchBar .search-input {
   width: 100%;
