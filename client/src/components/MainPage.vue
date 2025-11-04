@@ -34,9 +34,7 @@ onMounted(async () => {
 
   try {
     await connect("ws://localhost:8080/chats", connectHeaders, () => {
-      console.log('🔍 Пытаюсь подписаться на /user/queue/new-chat');
       subscribe(`/topic/user/${localStorage.getItem('userId')}/chats`, (newChat) => {
-        console.log('🆕 Получен новый чат:', newChat);
         const exists = chats.value.some(chat => chat.id === newChat.id);
         if (!exists) {
           chats.value.unshift(newChat);
@@ -46,14 +44,13 @@ onMounted(async () => {
       const chatList = Array.isArray(chats.value) ? chats.value : [];
       if (chatList.length > 0) {
         subscribeToAllChats(chatList, (message) => {
-          console.log('📩 Новое сообщение:', message);
           const parsedMessage = typeof message === 'string' ? JSON.parse(message) : message;
           messageStore.addMessage(parsedMessage.chatId, parsedMessage);
         });
       }
     });
   } catch (error) {
-    console.error('❌ WebSocket connection failed:', error);
+    console.error(' WebSocket connection failed:', error);
     router.push({ name: 'Login' });
   }
 });
@@ -76,21 +73,18 @@ const sendMessage = async (content) => {
   const username = localStorage.getItem('username');
 
   if (activeChat.value == null && activeChatName.value != null) {
-    console.log("===new Chat===")
     activeChat.value = await createChat({
       type: 'DIRECT',
       title: null,
       participants: [username, activeChatName.value]
     })
     subscribeToChat(activeChat.value.id, (message) => {
-      console.log('📩 Новое сообщение:', message);
       messageStore.addMessage(message.chatId, message);
     });
   }
 
   if (!activeChat.value?.id || !content?.trim()) {
-    console.warn('Нельзя отправить пустое сообщение или нет активного чата')
-    return
+    return; // empty message
   }
 
   const messagePayload = {
@@ -140,7 +134,8 @@ onUnmounted(() => {
       </div>
 
       <div v-else-if="error" class="error-message">
-        Не удалось загрузить чаты. Попробуйте позже.
+        <p>Не удалось загрузить чаты</p>
+        <button @click="fetchChats" class="retry-button">Попробовать снова</button>
       </div>
 
       <ChatList
@@ -284,5 +279,30 @@ main {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: #d32f2f;
+}
+
+.error-message p {
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.retry-button {
+  background: #7e4aff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.retry-button:hover {
+  background: #6a2c91;
 }
 </style>
