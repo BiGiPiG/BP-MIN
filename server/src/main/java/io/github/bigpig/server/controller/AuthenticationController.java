@@ -2,10 +2,10 @@ package io.github.bigpig.server.controller;
 
 import io.github.bigpig.server.dto.AuthenticationResponseDto;
 import io.github.bigpig.server.dto.LoginRequestDto;
+import io.github.bigpig.server.dto.RefreshTokenDto;
 import io.github.bigpig.server.dto.RegistrationRequestDto;
 import io.github.bigpig.server.service.AuthenticationService;
 import io.github.bigpig.server.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -45,8 +45,8 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh_token")
-    public ResponseEntity<AuthenticationResponseDto> refreshToken(HttpServletRequest request) {
+    public ResponseEntity<AuthenticationResponseDto> refreshToken(@RequestBody RefreshTokenDto refreshToken) {
         log.info("Refresh token request received");
-        return authenticationService.refreshToken(request);
+        return authenticationService.refreshToken(refreshToken.refreshToken());
     }
 }
