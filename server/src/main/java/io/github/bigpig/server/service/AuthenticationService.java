@@ -6,11 +6,7 @@ import io.github.bigpig.server.entity.Role;
 import io.github.bigpig.server.entity.Token;
 import io.github.bigpig.server.entity.User;
 import io.github.bigpig.server.repository.TokenRepository;
-import io.github.bigpig.server.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,104 +15,72 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import io.github.bigpig.server.dto.RegistrationRequestDto;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-    private final UserRepository userRepository;
+
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final TokenRepository tokenRepository;
+    private final UserService userService;
 
-    public void register(RegistrationRequestDto request) {
+    public void signup(RegistrationRequestDto request) {
 
-        User user = new User();
+        User user = User.builder()
+                .username(request.getUsername())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.USER)
+                .build();
 
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.USER);
-
-        user = userRepository.save(user);
+        userService.save(user);
     }
 
-    private void revokeAllToken(User user) {
-
-        List<Token> validTokens = tokenRepository.findAllAccessTokenByUser(user.getId());
-
-        if(!validTokens.isEmpty()){
-            validTokens.forEach(t ->{
-                t.setLoggedOut(true);
-            });
-        }
-
-        tokenRepository.saveAll(validTokens);
+    void deleteRefreshToken(User user) {
+        tokenRepository.deleteByUserId(user.getId());
     }
 
-    private void saveUserToken(String accessToken, String refreshToken, User user) {
-
-        Token token = new Token();
-
-        token.setAccessToken(accessToken);
-        token.setRefreshToken(refreshToken);
-        token.setLoggedOut(false);
-        token.setUser(user);
-
+    private void saveRefreshToken(String refreshToken, User user) {
+        Token token = Token.builder()
+                .refreshToken(refreshToken)
+                .user(user)
+                .build();
         tokenRepository.save(token);
     }
 
-    public AuthenticationResponseDto authenticate(LoginRequestDto request) {
-
+    @Transactional
+    public AuthenticationResponseDto signin(LoginRequestDto request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.username(),
-                        request.password()
-                )
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
-
-        User user = userRepository.findByUsername(request.username())
-                .orElseThrow();
-
+        User user = userService.findByUsername(request.username()).orElseThrow();
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
-
-        revokeAllToken(user);
-
-        saveUserToken(accessToken, refreshToken, user);
-
+        deleteRefreshToken(user);
+        saveRefreshToken(refreshToken, user);
         return new AuthenticationResponseDto(accessToken, refreshToken);
     }
 
-    public ResponseEntity<AuthenticationResponseDto> refreshToken(
-            HttpServletRequest request,
-            HttpServletResponse response) {
+    @Transactional
+    public ResponseEntity<AuthenticationResponseDto> refreshToken(String refreshToken) {
 
-        String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        String token = authorizationHeader.substring(7);
-        String username = jwtService.extractUsername(token);
-
-        User user = userRepository.findByUsername(username)
+        String username = jwtService.extractUsername(refreshToken);
+        User user = userService.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("No user found"));
 
-        if (jwtService.isValidRefresh(token, user)) {
-
-            String accessToken = jwtService.generateAccessToken(user);
-            String refreshToken = jwtService.generateRefreshToken(user);
-
-            revokeAllToken(user);
-
-            saveUserToken(accessToken, refreshToken, user);
-
-            return new ResponseEntity<>(new AuthenticationResponseDto(accessToken, refreshToken), HttpStatus.OK);
-
+        if (jwtService.isValidRefresh(refreshToken, user)) {
+            String newAccessToken = jwtService.generateAccessToken(user);
+            String newRefreshToken = jwtService.generateRefreshToken(user);
+            deleteRefreshToken(user);
+            saveRefreshToken(refreshToken, user);
+            return ResponseEntity.ok(
+                new AuthenticationResponseDto(newAccessToken,
+                newRefreshToken)
+            );
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
