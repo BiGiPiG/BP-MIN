@@ -52,8 +52,11 @@ router.beforeEach(async (to, from, next) => {
   const response = await fetch('/api/auth/refresh_token', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${refreshToken}`
+      'Content-Type': 'application/json'
     },
+    body: JSON.stringify({
+      refreshToken: refreshToken
+    })
   });
 
   if (!response.ok) {
