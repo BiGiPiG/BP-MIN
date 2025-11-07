@@ -1,11 +1,7 @@
 package io.github.bigpig.server.service;
 
 import io.github.bigpig.server.entity.User;
-import io.github.bigpig.server.repository.TokenRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtBuilder;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +16,6 @@ import java.util.function.Function;
 @Service
 @RequiredArgsConstructor
 public class JwtService {
-
-    private final TokenRepository tokenRepository;
 
     @Value("${security.jwt.secret_key}")
     private String secretKey;
@@ -38,13 +32,13 @@ public class JwtService {
     }
 
     private String generateToken(User user, long expiryTime) {
-        JwtBuilder builder = Jwts.builder()
+        return Jwts.builder()
                 .subject(user.getUsername())
+                .claim("id", user.getId())
+                .issuer("bp-min")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiryTime))
-                .signWith(getSigningKey());
-
-        return builder.compact();
+                .signWith(getSigningKey()).compact();
     }
 
     public String generateAccessToken(User user) {
@@ -56,19 +50,15 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-
         JwtParserBuilder parser = Jwts.parser();
         parser.verifyWith(getSigningKey());
-
         return parser.build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> resolver) {
-
         Claims claims = extractAllClaims(token);
-
         return resolver.apply(claims);
     }
 
@@ -80,31 +70,25 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
+    public String extractIssuer(String token) {
+        return extractClaim(token, Claims::getIssuer);
+    }
+
     private boolean isAccessTokenExpired(String token) {
         return !extractExpiration(token).before(new Date());
     }
 
     public boolean isValid(String token, UserDetails user) {
-
         String username = extractUsername(token);
-
-        boolean isValidToken = tokenRepository.findByAccessToken(token)
-                .map(t -> !t.isLoggedOut()).orElse(false);
-
         return username.equals(user.getUsername())
                 && isAccessTokenExpired(token)
-                && isValidToken;
+                && extractIssuer(token).equals("bp-min");
     }
 
     public boolean isValidRefresh(String token, User user) {
-
         String username = extractUsername(token);
-
-        boolean isValidRefreshToken = tokenRepository.findByRefreshToken(token)
-                .map(t -> !t.isLoggedOut()).orElse(false);
-
         return username.equals(user.getUsername())
                 && isAccessTokenExpired(token)
-                && isValidRefreshToken;
+                && extractIssuer(token).equals("bp-min");
     }
 }
