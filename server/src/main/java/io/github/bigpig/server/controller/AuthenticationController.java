@@ -4,10 +4,7 @@ import io.github.bigpig.server.dto.AuthenticationResponseDto;
 import io.github.bigpig.server.dto.LoginRequestDto;
 import io.github.bigpig.server.dto.RefreshTokenDto;
 import io.github.bigpig.server.dto.RegistrationRequestDto;
-import io.github.bigpig.server.exceptions.AuthException;
-import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.service.AuthenticationService;
-import io.github.bigpig.server.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +22,6 @@ import java.util.Map;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
-    private final UserService userService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody RegistrationRequestDto registrationDto) {
