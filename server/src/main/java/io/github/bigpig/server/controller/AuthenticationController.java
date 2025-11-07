@@ -4,6 +4,8 @@ import io.github.bigpig.server.dto.AuthenticationResponseDto;
 import io.github.bigpig.server.dto.LoginRequestDto;
 import io.github.bigpig.server.dto.RefreshTokenDto;
 import io.github.bigpig.server.dto.RegistrationRequestDto;
+import io.github.bigpig.server.exceptions.AuthException;
+import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.service.AuthenticationService;
 import io.github.bigpig.server.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -27,12 +29,6 @@ public class AuthenticationController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody RegistrationRequestDto registrationDto) {
-        if(userService.existsByUsername(registrationDto.getUsername())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Username is already taken"));
-        }
-        if(userService.existsByEmail(registrationDto.getEmail())) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Email is already taken"));
-        }
         log.info("Signup request received for user {}", registrationDto.getUsername());
         authenticationService.signup(registrationDto);
         return ResponseEntity.ok(Map.of("message", "Registration was successful"));

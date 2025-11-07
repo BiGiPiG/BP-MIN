@@ -5,6 +5,8 @@ import io.github.bigpig.server.dto.LoginRequestDto;
 import io.github.bigpig.server.entity.Role;
 import io.github.bigpig.server.entity.Token;
 import io.github.bigpig.server.entity.User;
+import io.github.bigpig.server.exceptions.AuthException;
+import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.repository.TokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +31,13 @@ public class AuthenticationService {
     private final UserService userService;
 
     public void signup(RegistrationRequestDto request) {
+        if (userService.existsByUsername(request.getUsername())) {
+            throw new AuthException(ErrorCode.USERNAME_ALREADY_EXISTS);
+        }
+
+        if (userService.existsByEmail(request.getEmail())) {
+            throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
+        }
 
         User user = User.builder()
                 .username(request.getUsername())
@@ -55,7 +64,7 @@ public class AuthenticationService {
     @Transactional
     public AuthenticationResponseDto signin(LoginRequestDto request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.username(), request.password())
+            new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
         User user = userService.findByUsername(request.username()).orElseThrow();
         String accessToken = jwtService.generateAccessToken(user);
