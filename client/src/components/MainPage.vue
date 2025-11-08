@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import ChatList from '@/components/ChatList.vue'
 import ChatView from '@/components/ChatView.vue'
 import SearchBar from '@/components/SearchBar.vue'
@@ -38,6 +38,9 @@ onMounted(async () => {
         const exists = chats.value.some(chat => chat.id === newChat.id);
         if (!exists) {
           chats.value.unshift(newChat);
+          subscribeToChat(newChat.id, (message) => {
+            messageStore.addMessage(message.chatId, message);
+          });
         }
       });
 
@@ -78,9 +81,6 @@ const sendMessage = async (content) => {
       title: null,
       participants: [username, activeChatName.value]
     })
-    subscribeToChat(activeChat.value.id, (message) => {
-      messageStore.addMessage(message.chatId, message);
-    });
   }
 
   if (!activeChat.value?.id || !content?.trim()) {

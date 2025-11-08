@@ -175,7 +175,6 @@ onMounted(() => {
 
 .placeholder-card h2 {
   font-size: 26px;
-  margin: 0 0 16px;
   font-weight: 700;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
