@@ -81,7 +81,8 @@ public class AuthenticationService {
         User user = userService.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("No user found"));
 
-        if (jwtService.isValidRefresh(refreshToken, user)) {
+        if (jwtService.isValidRefresh(refreshToken, user)
+            && tokenRepository.findByRefreshToken(refreshToken).isPresent()) {
             String newAccessToken = jwtService.generateAccessToken(user);
             String newRefreshToken = jwtService.generateRefreshToken(user);
             deleteRefreshToken(user);
