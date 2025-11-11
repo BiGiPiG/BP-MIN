@@ -31,13 +31,17 @@ const performSearch = useDebounceFn(async (query) => {
   error.value = null
 
   try {
-    const response = await fetch("/api/users/" + query, {
+    const params = new URLSearchParams();
+    params.append('searchTerm', query);
+
+    const response = await fetch(`/api/users/search?${params.toString()}`, {
       method: "GET",
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         'Content-Type': 'application/json'
       }
-    })
+    });
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
