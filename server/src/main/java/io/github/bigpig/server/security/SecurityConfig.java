@@ -1,6 +1,7 @@
 package io.github.bigpig.server.security;
 
 import io.github.bigpig.server.service.UserService;
+import io.github.bigpig.server.util.CorsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,9 +21,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @Configuration
@@ -34,6 +32,7 @@ public class SecurityConfig {
     private final UserService userService;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CustomLogoutHandler customLogoutHandler;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -41,6 +40,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/chats").permitAll()
                         .requestMatchers("/api/auth/signin", "/api/auth/signup", "/api/auth/refresh_token").permitAll()
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
@@ -62,11 +62,11 @@ public class SecurityConfig {
 
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+        config.setAllowedOrigins(corsProperties.allowedOrigins());
+        config.setAllowedMethods(corsProperties.allowedMethods());
+        config.setAllowedHeaders(corsProperties.allowedHeaders());
+        config.setAllowCredentials(corsProperties.allowCredentials());
+        config.setMaxAge(corsProperties.maxAge());
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
