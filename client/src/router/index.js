@@ -55,7 +55,7 @@ router.beforeEach(async (to, from, next) => {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      refreshToken: refreshToken
+      refreshToken
     })
   });
 
