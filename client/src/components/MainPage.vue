@@ -91,10 +91,11 @@ const sendMessage = async (content) => {
     chatId: activeChat.value.id,
     senderId: userId,
     content: content.trim(),
-    timestamp: new Date().toISOString()
+    sentAt: new Date().toISOString().slice(0, -1)
   }
+  console.log(messagePayload);
 
-  send('/app/chat', messagePayload)
+  send('/bp-min/chat.sendMessage', messagePayload)
 }
 
 const handleSearchUser = (chatName) => {
