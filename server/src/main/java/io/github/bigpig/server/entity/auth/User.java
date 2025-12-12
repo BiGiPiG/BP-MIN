@@ -1,7 +1,9 @@
-package io.github.bigpig.server.entity;
+package io.github.bigpig.server.entity.auth;
 
+import io.github.bigpig.server.entity.chat.ChatParticipant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -12,9 +14,10 @@ import java.util.Collection;
 import java.util.List;
 
 @Data
+@Entity
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Entity
 @Table(name = "users")
 public class User implements UserDetails {
     @Id
@@ -36,6 +39,9 @@ public class User implements UserDetails {
 
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<ChatParticipant> chatParticipants;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

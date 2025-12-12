@@ -1,7 +1,8 @@
-package io.github.bigpig.server.entity;
+package io.github.bigpig.server.entity.chat;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -20,7 +21,7 @@ public class Chat {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ChatType type; // PRIVATE, GROUP
+    private ChatType type;
 
     @Column(name = "title")
     private String title;
@@ -60,5 +61,36 @@ public class Chat {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @Entity
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @Table(name = "chat_messages")
+    public static class ChatMessage {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "chat_id", nullable = false)
+        private Chat chat;
+
+        @Column(name = "sender_id", nullable = false)
+        private long senderId;
+
+        @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+        private String content;
+
+        @Column(name = "sent_at", nullable = false)
+        private LocalDateTime sentAt = LocalDateTime.now();
+
+        public ChatMessage(Chat chat, long senderId, String content) {
+            this.chat = chat;
+            this.senderId = senderId;
+            this.content = content;
+        }
     }
 }
