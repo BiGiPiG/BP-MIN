@@ -1,6 +1,6 @@
 package io.github.bigpig.server.controller;
 
-import io.github.bigpig.server.dto.MessageDto;
+import io.github.bigpig.server.dto.chat.MessageDto;
 import io.github.bigpig.server.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

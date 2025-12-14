@@ -1,6 +1,6 @@
 package io.github.bigpig.server.service;
 
-import io.github.bigpig.server.entity.User;
+import io.github.bigpig.server.entity.auth.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;

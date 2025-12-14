@@ -1,6 +1,6 @@
 package io.github.bigpig.server.security;
 
-import io.github.bigpig.server.entity.Token;
+import io.github.bigpig.server.entity.auth.Token;
 import io.github.bigpig.server.repository.TokenRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
