@@ -1,8 +1,8 @@
 package io.github.bigpig.server.listener;
 
-import io.github.bigpig.server.dto.ChatDto;
-import io.github.bigpig.server.entity.Chat;
-import io.github.bigpig.server.entity.ChatParticipant;
+import io.github.bigpig.server.dto.chat.ChatDto;
+import io.github.bigpig.server.entity.chat.Chat;
+import io.github.bigpig.server.entity.chat.ChatParticipant;
 import io.github.bigpig.server.event.ChatCreatedEvent;
 import io.github.bigpig.server.service.ChatService;
 import lombok.RequiredArgsConstructor;

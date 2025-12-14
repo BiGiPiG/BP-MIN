@@ -1,6 +1,6 @@
 package io.github.bigpig.server.event;
 
-import io.github.bigpig.server.entity.Chat;
+import io.github.bigpig.server.entity.chat.Chat;
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 

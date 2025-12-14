@@ -1,10 +1,10 @@
 package io.github.bigpig.server.service;
 
-import io.github.bigpig.server.dto.AuthenticationResponseDto;
-import io.github.bigpig.server.dto.LoginRequestDto;
-import io.github.bigpig.server.entity.Role;
-import io.github.bigpig.server.entity.Token;
-import io.github.bigpig.server.entity.User;
+import io.github.bigpig.server.dto.auth.AuthenticationResponseDto;
+import io.github.bigpig.server.dto.auth.LoginRequestDto;
+import io.github.bigpig.server.entity.auth.Role;
+import io.github.bigpig.server.entity.auth.Token;
+import io.github.bigpig.server.entity.auth.User;
 import io.github.bigpig.server.exceptions.AuthException;
 import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.repository.TokenRepository;
@@ -16,7 +16,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import io.github.bigpig.server.dto.RegistrationRequestDto;
+import io.github.bigpig.server.dto.auth.RegistrationRequestDto;
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -31,18 +31,18 @@ public class AuthenticationService {
     private final UserService userService;
 
     public void signup(RegistrationRequestDto request) {
-        if (userService.existsByUsername(request.getUsername())) {
+        if (userService.existsByUsername(request.username())) {
             throw new AuthException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
 
-        if (userService.existsByEmail(request.getEmail())) {
+        if (userService.existsByEmail(request.email())) {
             throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
         User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .username(request.username())
+                .email(request.email())
+                .password(passwordEncoder.encode(request.password()))
                 .role(Role.USER)
                 .build();
 
@@ -81,16 +81,12 @@ public class AuthenticationService {
         User user = userService.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("No user found"));
 
-        if (jwtService.isValidRefresh(refreshToken, user)
-            && tokenRepository.findByRefreshToken(refreshToken).isPresent()) {
+        if (jwtService.isValidRefresh(refreshToken, user) && tokenRepository.findByRefreshToken(refreshToken).isPresent()) {
             String newAccessToken = jwtService.generateAccessToken(user);
             String newRefreshToken = jwtService.generateRefreshToken(user);
             deleteRefreshToken(user);
             saveRefreshToken(refreshToken, user);
-            return ResponseEntity.ok(
-                new AuthenticationResponseDto(newAccessToken,
-                newRefreshToken)
-            );
+            return ResponseEntity.ok(new AuthenticationResponseDto(newAccessToken, newRefreshToken));
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
