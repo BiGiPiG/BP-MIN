@@ -1,9 +1,9 @@
 package io.github.bigpig.server.controller;
 
-import io.github.bigpig.server.dto.AuthenticationResponseDto;
-import io.github.bigpig.server.dto.LoginRequestDto;
-import io.github.bigpig.server.dto.RefreshTokenDto;
-import io.github.bigpig.server.dto.RegistrationRequestDto;
+import io.github.bigpig.server.dto.RefreshTokenRequest;
+import io.github.bigpig.server.dto.auth.AuthenticationResponseDto;
+import io.github.bigpig.server.dto.auth.LoginRequestDto;
+import io.github.bigpig.server.dto.auth.RegistrationRequestDto;
 import io.github.bigpig.server.service.AuthenticationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class AuthenticationController {
 
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody RegistrationRequestDto registrationDto) {
-        log.info("Signup request received for user {}", registrationDto.getUsername());
+        log.info("Signup request received for user {}", registrationDto.username());
         authenticationService.signup(registrationDto);
         return ResponseEntity.ok(Map.of("message", "Registration was successful"));
     }
@@ -37,7 +37,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/refresh_token")
-    public ResponseEntity<AuthenticationResponseDto> refreshToken(@RequestBody RefreshTokenDto refreshToken) {
+    public ResponseEntity<AuthenticationResponseDto> refreshToken(@RequestBody RefreshTokenRequest refreshToken) {
         log.info("Refresh token request received");
         return authenticationService.refreshToken(refreshToken.refreshToken());
     }
