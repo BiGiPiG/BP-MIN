@@ -19,6 +19,6 @@ public class UserController {
     @GetMapping("/search")
     public List<UserDto> searchUsers(@RequestParam String searchTerm) {
         log.info("Searching for users with term: {}", searchTerm);
-        return userService.searchByUsername(searchTerm).stream().map(UserDto::of).toList();
+        return userService.searchByUsername(searchTerm).stream().map(UserDto::from).toList();
     }
 }
