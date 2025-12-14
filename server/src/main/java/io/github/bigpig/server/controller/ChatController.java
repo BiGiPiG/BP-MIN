@@ -1,9 +1,10 @@
 package io.github.bigpig.server.controller;
 
-import io.github.bigpig.server.dto.ChatDto;
-import io.github.bigpig.server.dto.CreateChatRequestDto;
-import io.github.bigpig.server.dto.MessageDto;
-import io.github.bigpig.server.entity.User;
+import io.github.bigpig.server.dto.chat.ChatDto;
+import io.github.bigpig.server.dto.chat.CreateChatRequestDto;
+import io.github.bigpig.server.dto.chat.MessageDto;
+import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.repository.UserRepository;
 import io.github.bigpig.server.service.ChatService;
 import io.github.bigpig.server.service.MessageService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -26,9 +28,8 @@ public class ChatController {
 
     @GetMapping
     public ResponseEntity<List<ChatDto>> getChats(@AuthenticationPrincipal User userDetails) {
-        Long userId = userDetails.getId();
         return new ResponseEntity<>(
-                chatService.findChatsByUserId(userId).stream().map(chatService::getChatDto).toList(),
+                chatService.findChatsByUser(userDetails).stream().map(chatService::getChatDto).toList(),
                 HttpStatus.OK);
     }
 
