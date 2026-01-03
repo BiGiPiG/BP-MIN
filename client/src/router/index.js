@@ -26,7 +26,14 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/login' }],
+      redirect: '/login'
+    },
+    {
+      path: '/profile',
+      name: 'Profile',
+      component: () => import('@/components/UserProfile.vue')
+    }
+  ],
   history: createWebHistory()
 })
 

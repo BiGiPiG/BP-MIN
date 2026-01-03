@@ -1,11 +1,12 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import {onMounted, ref} from 'vue'
 import ChatList from '@/components/ChatList.vue'
 import ChatView from '@/components/ChatView.vue'
 import SearchBar from '@/components/SearchBar.vue'
 import { useChats } from "@/utils/useChats.js"
 import { useStomp } from "@/utils/useStomp.js";
 import { useMessageStore } from "@/utils/useMessages.js";
+import { useRouter } from 'vue-router'
 
 const { chats, loading, error, fetchChats, createChat } = useChats()
 
@@ -20,6 +21,8 @@ const {
   send,
   subscribeToChat
 } = useStomp()
+
+const router = useRouter()
 
 onMounted(async () => {
   await fetchChats();
@@ -54,7 +57,7 @@ onMounted(async () => {
     });
   } catch (error) {
     console.error(' WebSocket connection failed:', error);
-    router.push({ name: 'Login' });
+    await router.push({name: 'Login'});
   }
 });
 
@@ -120,6 +123,7 @@ onUnmounted(() => {
   unsubscribeFromAllChats()
   disconnect()
 })
+
 </script>
 
 <template>
@@ -155,6 +159,14 @@ onUnmounted(() => {
         @send-message="sendMessage"
     />
   </main>
+  <button
+      v-if="!activeChat"
+      class="profile-avatar-button"
+      @click="router.push('/profile')"
+      aria-label="Профиль"
+  >
+    Your profile
+  </button>
 </template>
 
 <style scoped>
@@ -294,5 +306,35 @@ main {
 
 .retry-button:hover {
   background: #6a2c91;
+}
+
+/*profile button*/
+.profile-avatar-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 30;
+
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow:
+      0 4px 12px rgba(126, 74, 255, 0.3),
+      0 2px 6px rgba(249, 115, 22, 0.2);
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.profile-avatar-button:hover {
+  transform: translateY(-2px);
+  box-shadow:
+      0 6px 20px rgba(126, 74, 255, 0.4),
+      0 4px 12px rgba(249, 115, 22, 0.3);
 }
 </style>
