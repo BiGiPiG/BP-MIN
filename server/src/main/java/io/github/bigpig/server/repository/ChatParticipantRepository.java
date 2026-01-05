@@ -14,7 +14,7 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
             "WHERE cp.user.id = :userId " +
             "AND cp.leftAt IS NULL " +
             "ORDER BY cp.chat.updatedAt DESC")
-    List<Chat> findChatsByUserId(@Param("userId") long userId);
+    List<Chat> findChatsByUserId(@Param("userId") String userId);
 
     @Query("""
         SELECT new io.github.bigpig.server.dto.chat.ParticipantInfo(

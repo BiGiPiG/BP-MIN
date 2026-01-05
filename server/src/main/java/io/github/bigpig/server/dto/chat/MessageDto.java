@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public record MessageDto(
         Long chatId,               // ID чата
-        Long senderId,             // ID отправителя
+        String senderId,             // ID отправителя
         String content,            // текст сообщения
         LocalDateTime sentAt       // когда отправлено
 ) {

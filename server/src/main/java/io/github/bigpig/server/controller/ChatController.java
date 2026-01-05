@@ -4,7 +4,6 @@ import io.github.bigpig.server.dto.chat.ChatDto;
 import io.github.bigpig.server.dto.chat.CreateChatRequestDto;
 import io.github.bigpig.server.dto.chat.MessageDto;
 import io.github.bigpig.server.entity.auth.User;
-import io.github.bigpig.server.repository.UserRepository;
 import io.github.bigpig.server.service.ChatService;
 import io.github.bigpig.server.service.MessageService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @RestController

@@ -52,12 +52,6 @@ public class Chat {
         participant.setChat(this);
     }
 
-    public void addMessage(ChatMessage message) {
-        messages.add(message);
-        message.setChat(this);
-        this.updatedAt = LocalDateTime.now();
-    }
-
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
@@ -79,7 +73,7 @@ public class Chat {
         private Chat chat;
 
         @Column(name = "sender_id", nullable = false)
-        private long senderId;
+        private String senderId;
 
         @Column(name = "content", nullable = false, columnDefinition = "TEXT")
         private String content;
@@ -87,7 +81,7 @@ public class Chat {
         @Column(name = "sent_at", nullable = false)
         private LocalDateTime sentAt = LocalDateTime.now();
 
-        public ChatMessage(Chat chat, long senderId, String content) {
+        public ChatMessage(Chat chat, String senderId, String content) {
             this.chat = chat;
             this.senderId = senderId;
             this.content = content;

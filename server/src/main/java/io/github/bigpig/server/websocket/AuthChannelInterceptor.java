@@ -4,6 +4,7 @@ import io.github.bigpig.server.entity.auth.User;
 import io.github.bigpig.server.service.JwtService;
 import io.github.bigpig.server.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -24,9 +25,8 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
     private final UserService userService;
 
     @Override
-    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
-
         if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authHeader = accessor.getFirstNativeHeader("Authorization");
 
@@ -37,13 +37,13 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
 
                 if (jwtService.isValid(token, userDetails)) {
                     Optional<User> userOptional = userService.findByUsername(username);
-                    Long userId;
+                    String userId;
                     if (userOptional.isPresent()) {
                         userId = userOptional.get().getId();
                     } else {
                         throw new RuntimeException("User not found");
                     }
-                    Principal user = () -> String.valueOf(userId);
+                    Principal user = () -> userId;
                     accessor.setUser(user);
                 } else {
                     throw new RuntimeException("Token is invalid");

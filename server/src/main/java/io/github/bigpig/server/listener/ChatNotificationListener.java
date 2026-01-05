@@ -26,7 +26,7 @@ public class ChatNotificationListener {
         ChatDto chatDto = chatService.getChatDto(chat);
 
         for (ChatParticipant participant : chat.getParticipants()) {
-            long userId = participant.getUser().getId();
+            String userId = participant.getUser().getId();
             messagingTemplate.convertAndSend("/topic/user/" + userId + "/chats", chatDto);
             log.debug("Notification sent for chat {} to user {}", chatDto.id(), userId);
         }
