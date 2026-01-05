@@ -1,7 +1,6 @@
 package io.github.bigpig.server.repository;
 
 import io.github.bigpig.server.dto.chat.ParticipantInfo;
-import io.github.bigpig.server.entity.auth.User;
 import io.github.bigpig.server.entity.chat.Chat;
 import io.github.bigpig.server.entity.chat.ChatParticipant;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,10 +11,10 @@ import java.util.List;
 
 public interface ChatParticipantRepository extends JpaRepository<ChatParticipant, Long> {
     @Query("SELECT cp.chat FROM ChatParticipant cp " +
-            "WHERE cp.user = :user " +
+            "WHERE cp.user.id = :userId " +
             "AND cp.leftAt IS NULL " +
             "ORDER BY cp.chat.updatedAt DESC")
-    List<Chat> findChatsByUser(@Param("user") User user);
+    List<Chat> findChatsByUserId(@Param("userId") long userId);
 
     @Query("""
         SELECT new io.github.bigpig.server.dto.chat.ParticipantInfo(
