@@ -2,6 +2,28 @@
 import { ref, defineEmits, onMounted, computed, watch } from 'vue'
 import { useMessageStore } from '@/utils/useMessages'
 
+//profile panel
+const isProfileVisible = ref(false)
+
+const open_profile = () => {
+  isProfileVisible.value = true
+}
+
+const closeProfile = () => {
+  isProfileVisible.value = false
+}
+
+const profileData = computed(() => ({
+  username: localStorage.getItem('username') || 'User',
+  userId: localStorage.getItem('userId') || '',
+  bio: localStorage.getItem('userBio') || 'No bio provided.',
+  birthDate: localStorage.getItem('userBirthDate') || ''
+}))
+
+const profileInitial = computed(() => {
+  return profileData.value.username.charAt(0).toUpperCase() || '?'
+})
+
 const emit = defineEmits(['return-to-list', 'send-message'])
 const messageText = ref('')
 const currentUserId = Number(localStorage.getItem('userId'));
@@ -79,7 +101,7 @@ onMounted(() => {
   <div v-else class="conversation-interface">
     <div class="conversation-header">
       <button @click="emit('return-to-list')" class="navigation-button">←</button>
-      <div class="contact-name">{{ currentConversationName }}</div>
+      <div class="contact-name" @click="open_profile">{{ currentConversationName }}</div>
     </div>
 
     <div class="messages-container">
@@ -101,6 +123,44 @@ onMounted(() => {
       />
       <button @click="handleSendMessage" class="send-button">Send</button>
     </div>
+    <teleport to="body" v-if="isProfileVisible">
+      <div class="profile-overlay" @click="closeProfile">
+        <div class="profile-modal" @click.stop>
+          <div class="profile-header">
+            <button class="close-button" @click="closeProfile">×</button>
+            <h2>User Profile</h2>
+          </div>
+
+          <div class="profile-avatar-section">
+            <div
+                class="profile-avatar"
+                :style="{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }"
+            >
+              {{ profileInitial }}
+            </div>
+          </div>
+
+          <div class="profile-info">
+            <div class="profile-field">
+              <label>Username</label>
+              <div>{{ profileData.username }}</div>
+            </div>
+            <div class="profile-field">
+              <label>User ID</label>
+              <div>{{ profileData.userId }}</div>
+            </div>
+            <div class="profile-field">
+              <label>Birth Date</label>
+              <div>{{ profileData.birthDate || '—' }}</div>
+            </div>
+            <div class="profile-field">
+              <label>About</label>
+              <div class="bio-text">{{ profileData.bio }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </teleport>
   </div>
 </template>
 
@@ -243,6 +303,7 @@ onMounted(() => {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  cursor: pointer;
 }
 
 .messages-container {
@@ -471,6 +532,141 @@ onMounted(() => {
   }
 
   .placeholder-card h2 {
+    font-size: 22px;
+  }
+}
+
+/* Profile Modal Overlay */
+.profile-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100dvh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  animation: modal-fade-in 0.25s ease-out;
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.profile-modal {
+  width: 90%;
+  max-width: 500px;
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow:
+      0 20px 50px rgba(0, 0, 0, 0.25),
+      0 10px 20px rgba(102, 126, 234, 0.15);
+  border: 1px solid rgba(102, 126, 234, 0.1);
+  position: relative;
+  max-height: 85dvh;
+  overflow-y: auto;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #667eea;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.close-button:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.profile-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea, #f093fb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.profile-avatar-section {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 28px;
+}
+
+.profile-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 40px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+.profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.profile-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #7e88a0;
+  margin-bottom: 6px;
+}
+
+.profile-field div {
+  font-size: 16px;
+  color: #222;
+  word-break: break-word;
+}
+
+.bio-text {
+  line-height: 1.5;
+  color: #444;
+}
+
+@media (max-width: 500px) {
+  .profile-modal {
+    padding: 24px;
+    border-radius: 20px;
+  }
+
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    font-size: 32px;
+    border-radius: 16px;
+  }
+
+  .profile-header h2 {
     font-size: 22px;
   }
 }
