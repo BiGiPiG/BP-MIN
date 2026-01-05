@@ -1,11 +1,14 @@
 package io.github.bigpig.server.service;
 
-import io.github.bigpig.server.entity.User;
+import io.github.bigpig.server.entity.auth.User;
 import io.github.bigpig.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -16,7 +19,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Пользователь с именем " + username + " не найден"));
+                .orElseThrow(() -> new UsernameNotFoundException("User - " + username + " not found"));
     }
 
     @Override
@@ -29,5 +32,20 @@ public class UserServiceImpl implements UserService {
     public boolean existsByEmail(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
         return user != null;
+    }
+
+    @Override
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
+    }
+
+    @Override
+    public List<User> searchByUsername(String username) {
+        return userRepository.findByUsernameStartingWithIgnoreCase(username);
+    }
+
+    @Override
+    public void save(User user) {
+        userRepository.save(user);
     }
 }

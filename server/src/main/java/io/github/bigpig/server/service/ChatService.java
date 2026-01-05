@@ -1,38 +1,37 @@
 package io.github.bigpig.server.service;
 
-import io.github.bigpig.server.dto.ChatDto;
-import io.github.bigpig.server.dto.CreateChatRequestDto;
-import io.github.bigpig.server.dto.ParticipantInfo;
-import io.github.bigpig.server.entity.Chat;
-import io.github.bigpig.server.entity.ChatParticipant;
-import io.github.bigpig.server.entity.User;
+import io.github.bigpig.server.dto.chat.ChatDto;
+import io.github.bigpig.server.dto.chat.CreateChatRequestDto;
+import io.github.bigpig.server.dto.chat.ParticipantInfo;
+import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.entity.chat.Chat;
+import io.github.bigpig.server.entity.chat.ChatParticipant;
+import io.github.bigpig.server.entity.chat.ChatType;
 import io.github.bigpig.server.event.ChatCreatedEvent;
-import io.github.bigpig.server.repository.ChatParticipantRepository;
 import io.github.bigpig.server.repository.ChatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final ChatParticipantRepository chatParticipantRepository;
+    private final ChatParticipantService chatParticipantService;
     private final UserService userService;
     private final ChatRepository chatRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    public List<Chat> findChatsByUserId(Long userId) {
-        return chatParticipantRepository.findChatsByUserId(userId);
-    }
-
-    public ChatDto getChatDto(Chat chat) {
-        List<ParticipantInfo> participantInfos = chatParticipantRepository
-                .findActiveParticipantsWithNicknamesByChatId(chat.getId());
-        return ChatDto.fromChat(chat, participantInfos);
+    public List<Chat> findChatsByUser(UserDetails userDetails) {
+        Optional<User> user = userService.findByUsername(userDetails.getUsername());
+        return user.map(chatParticipantService::findChatsByUser).orElse(null);
     }
 
     @Transactional
@@ -46,6 +45,29 @@ public class ChatService {
         Chat newChat = chatRepository.save(chat);
         eventPublisher.publishEvent(new ChatCreatedEvent(this, newChat));
         return chat;
+    }
+
+    public ChatDto getChatDto(Chat chat) {
+        List<ParticipantInfo> participantInfos = chatParticipantService
+                .findActiveParticipantsWithNicknamesByChatId(chat.getId());
+
+        Chat.ChatMessage lastMessage = chat.getMessages().stream()
+                .max(Comparator.comparing(Chat.ChatMessage::getSentAt))
+                .orElse(null);
+
+        String lastMessagePreview = (lastMessage != null) ? lastMessage.getContent() : null;
+        LocalDateTime lastActivity = (lastMessage != null) ? lastMessage.getSentAt() : chat.getCreatedAt();
+        boolean hasUnread = lastMessage != null;
+
+        return new ChatDto(
+                chat.getId(),
+                chat.getType(),
+                chat.getType() == ChatType.GROUP ? chat.getTitle() : null,
+                lastActivity.toString(),
+                lastMessagePreview,
+                hasUnread,
+                participantInfos
+        );
     }
 
 }
