@@ -1,6 +1,5 @@
 package io.github.bigpig.server.websocket;
 
-import io.github.bigpig.server.entity.auth.User;
 import io.github.bigpig.server.service.JwtService;
 import io.github.bigpig.server.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -36,15 +34,7 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
                 UserDetails userDetails = userService.loadUserByUsername(username);
 
                 if (jwtService.isValid(token, userDetails)) {
-                    Optional<User> userOptional = userService.findByUsername(username);
-                    String userId;
-                    if (userOptional.isPresent()) {
-                        userId = userOptional.get().getId();
-                    } else {
-                        throw new RuntimeException("User not found");
-                    }
-                    Principal user = () -> userId;
-                    accessor.setUser(user);
+                    accessor.setUser((Principal) userDetails);
                 } else {
                     throw new RuntimeException("Token is invalid");
                 }

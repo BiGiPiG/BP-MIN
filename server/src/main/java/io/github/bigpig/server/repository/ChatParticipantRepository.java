@@ -11,14 +11,14 @@ import java.util.List;
 
 public interface ChatParticipantRepository extends JpaRepository<ChatParticipant, Long> {
     @Query("SELECT cp.chat FROM ChatParticipant cp " +
-            "WHERE cp.user.id = :userId " +
+            "WHERE cp.user.username = :username " +
             "AND cp.leftAt IS NULL " +
             "ORDER BY cp.chat.updatedAt DESC")
-    List<Chat> findChatsByUserId(@Param("userId") String userId);
+    List<Chat> findChatsByUsername(@Param("username") String username);
 
     @Query("""
         SELECT new io.github.bigpig.server.dto.chat.ParticipantInfo(
-            cp.user.id, cp.user.username
+            cp.user.id, cp.user.nickname
         )
         FROM ChatParticipant cp
         WHERE cp.chat.id = :chatId

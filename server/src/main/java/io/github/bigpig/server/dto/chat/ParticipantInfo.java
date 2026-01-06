@@ -1,6 +1,6 @@
 package io.github.bigpig.server.dto.chat;
 
 public record ParticipantInfo(
-        String userId,
+        Long userId,
         String nickname
 ) {}

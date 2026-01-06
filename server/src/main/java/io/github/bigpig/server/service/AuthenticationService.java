@@ -40,6 +40,7 @@ public class AuthenticationService {
         }
 
         User user = User.builder()
+                .nickname(request.nickname())
                 .username(request.username())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
@@ -50,7 +51,7 @@ public class AuthenticationService {
     }
 
     void deleteRefreshToken(User user) {
-        tokenRepository.deleteByUserId(user.getId());
+        tokenRepository.deleteById(user.getId());
     }
 
     private void saveRefreshToken(String refreshToken, User user) {
@@ -63,10 +64,10 @@ public class AuthenticationService {
 
     @Transactional
     public AuthenticationResponseDto signin(LoginRequestDto request) {
-        authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.username(), request.password())
-        );
-        User user = userService.findByUsername(request.username()).orElseThrow();
+
+        User user = (User) authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                request.username(), request.password())).getPrincipal();
+
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
         deleteRefreshToken(user);
@@ -85,7 +86,7 @@ public class AuthenticationService {
             String newAccessToken = jwtService.generateAccessToken(user);
             String newRefreshToken = jwtService.generateRefreshToken(user);
             deleteRefreshToken(user);
-            saveRefreshToken(refreshToken, user);
+            saveRefreshToken(newRefreshToken, user);
             return ResponseEntity.ok(new AuthenticationResponseDto(newAccessToken, newRefreshToken));
         }
 

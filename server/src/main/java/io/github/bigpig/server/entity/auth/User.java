@@ -22,12 +22,16 @@ import java.util.List;
 @Table(name = "users")
 public class User implements UserDetails {
     @Id
-    @NonNull
-    @Column(name = "id")
-    private String id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
+    private Long id;
 
+    @NonNull
     @Column(name = "username")
     private String username;
+
+    @Column(name = "nickname")
+    private String nickname;
 
     @Column(name = "email")
     private String email;

@@ -16,7 +16,7 @@ public class ChatParticipantService {
     private final ChatParticipantRepository chatParticipantRepository;
 
     public List<Chat> findChatsByUser(User user) {
-        return chatParticipantRepository.findChatsByUserId(user.getId());
+        return chatParticipantRepository.findChatsByUsername(user.getUsername());
     }
 
     public List<ParticipantInfo> findActiveParticipantsWithNicknamesByChatId(Long chatId) {

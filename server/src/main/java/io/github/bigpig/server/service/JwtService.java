@@ -34,7 +34,6 @@ public class JwtService {
     private String generateToken(User user, long expiryTime) {
         return Jwts.builder()
                 .subject(user.getUsername())
-                .claim("id", user.getId())
                 .issuer("bp-min")
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiryTime))
