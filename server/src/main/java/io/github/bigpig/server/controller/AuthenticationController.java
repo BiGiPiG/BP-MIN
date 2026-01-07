@@ -27,6 +27,7 @@ public class AuthenticationController {
     public ResponseEntity<?> signup(@RequestBody RegistrationRequestDto registrationDto) {
         log.info("Signup request received for user {}", registrationDto.nickname());
         authenticationService.signup(registrationDto);
+        log.info("Registration for user {} was successful", registrationDto.nickname());
         return ResponseEntity.ok(Map.of("message", "Registration was successful"));
     }
 
