@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 
-const emit = defineEmits(['chat-selected'])
+// ─────────────────────────────────────
+// Props & Emits
+// ─────────────────────────────────────
 
 const props = defineProps({
   chats: {
@@ -15,55 +17,69 @@ const props = defineProps({
   }
 })
 
-const getRandomGradient = () => {
-  const gradients = [
-    'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)',
-    'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)',
-    'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)',
-    'linear-gradient(135deg, #d946ef 0%, #f0abfc 100%)',
-    'linear-gradient(135deg, #f97316 0%, #fdba74 100%)',
-    'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)',
-    'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)',
-    'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)'
-  ]
-  return gradients[Math.floor(Math.random() * gradients.length)]
-}
+const emit = defineEmits(['chat-selected'])
+
+// ─────────────────────────────────────
+// Constants
+// ─────────────────────────────────────
+
+const GRADIENTS = [
+  'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)',
+  'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)',
+  'linear-gradient(135deg, #d946ef 0%, #f0abfc 100%)',
+  'linear-gradient(135deg, #f97316 0%, #fdba74 100%)',
+  'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)',
+  'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)',
+  'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)'
+]
+
+// ─────────────────────────────────────
+// Computed Properties
+// ─────────────────────────────────────
 
 const chatGradients = computed(() => {
   return props.chats?.reduce((acc, chat) => {
-    acc[chat.id] = getRandomGradient()
+    acc[chat.id] = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)]
     return acc
   }, {}) || {}
 })
 
-function getChatname(chat) {
-  const user = localStorage.getItem('username')
-  if (!chat.participantInfo) return 'Unknown Chat'
-
-  const interlocutor = chat.participantInfo.find(participant =>
-      participant.nickname !== user
-  )
-  return interlocutor?.nickname || 'Unknown User'
-}
-
-function getChatInitial(chat) {
-  const name = getChatname(chat)
-  return name?.charAt(0)?.toUpperCase() || '?'
-}
-
-function switchActive(chat) {
-  const chatName = getChatname(chat)
-  emit('chat-selected', chat, chatName)
-}
-
 const processedChats = computed(() => {
-  return props.chats.map(chat => ({
-    ...chat,
-    displayName: getChatname(chat),
-    initial: getChatInitial(chat),
-    isActive: props.currentChatId === chat.id
-  }))
+  const currentUsername = localStorage.getItem('username') || ''
+
+  return props.chats.map(chat => {
+    // Get interlocutor name
+    let displayName = 'Unknown Chat'
+    let initial = '?'
+
+    if (chat?.participantInfo?.length) {
+      const interlocutor = chat.participantInfo.find(
+          participant => participant.nickname !== currentUsername
+      )
+
+      if (interlocutor?.nickname) {
+        displayName = interlocutor.nickname
+        initial = interlocutor.nickname.charAt(0).toUpperCase() || '?'
+      }
+    }
+
+    return {
+      ...chat,
+      displayName,
+      initial,
+      isActive: props.currentChatId === chat.id
+    }
+  })
 })
+
+// ─────────────────────────────────────
+// Methods
+// ─────────────────────────────────────
+
+const switchActive = (chat) => {
+  emit('chat-selected', chat, chat.displayName)
+}
 </script>
 
 <template>
@@ -72,9 +88,7 @@ const processedChats = computed(() => {
         v-for="chat in processedChats"
         :key="chat.id"
         class="chat-item"
-        :class="{
-          'active': chat.isActive
-        }"
+        :class="{ 'active': chat.isActive }"
         @click="switchActive(chat)"
     >
       <div
@@ -83,26 +97,27 @@ const processedChats = computed(() => {
       >
         {{ chat.initial }}
       </div>
-      <div class="chatContent">
-        <div class="titleRow">
+
+      <div class="chat-content">
+        <div class="title-row">
           <div class="title">{{ chat.displayName }}</div>
-<!--          <div v-if="chat.unread" class="unreadBadge"></div>-->
         </div>
-<!--        <div class="lastMessage">{{ chat.lastMessagePreview }}</div>-->
-<!--        <div class="chatMeta">-->
-<!--          <div class="time">{{ chat.lastActivity }}</div>-->
-<!--          <div v-if="chat.unreadCount" class="unreadCount">{{ chat.unreadCount }}</div>-->
-<!--        </div>-->
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* ────────────────────────────────────
+   Chat List Container
+   ──────────────────────────────────── */
 .chat-list {
   background: transparent;
 }
 
+/* ────────────────────────────────────
+   Chat Item
+   ──────────────────────────────────── */
 .chat-item {
   display: flex;
   align-items: center;
@@ -136,20 +151,6 @@ const processedChats = computed(() => {
   border-bottom-color: #ede9fe;
 }
 
-.chat-item.unread {
-  background: linear-gradient(135deg, #f5f3ff, #fffbeb);
-}
-
-.chat-item.unread .title {
-  color: #7e4aff;
-  font-weight: 700;
-}
-
-.chat-item.unread .lastMessage {
-  color: #a855f7;
-  font-weight: 500;
-}
-
 .chat-item.active {
   background: linear-gradient(135deg, #f0ebff, #fff7ed);
   border-left: 4px solid #7e4aff;
@@ -165,10 +166,9 @@ const processedChats = computed(() => {
   font-weight: 700;
 }
 
-.chat-item.active .lastMessage {
-  color: #8b5cf6;
-}
-
+/* ────────────────────────────────────
+   Avatar
+   ──────────────────────────────────── */
 .avatar {
   width: 52px;
   height: 52px;
@@ -196,7 +196,10 @@ const processedChats = computed(() => {
       0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
-.chatContent {
+/* ────────────────────────────────────
+   Chat Content
+   ──────────────────────────────────── */
+.chat-content {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -206,7 +209,7 @@ const processedChats = computed(() => {
   z-index: 2;
 }
 
-.titleRow {
+.title-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -223,55 +226,14 @@ const processedChats = computed(() => {
   flex: 1;
 }
 
-.lastMessage {
-  font-size: 14px;
-  color: #6b7280;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition: color 0.3s ease;
-}
-
-.chatMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.time {
-  font-size: 12px;
-  color: #9ca3af;
-  font-weight: 500;
-}
-
-.unreadBadge {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
-  flex-shrink: 0;
-}
-
-.unreadCount {
-  background: linear-gradient(135deg, #7e4aff, #f97316);
-  color: white;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 12px;
-  min-width: 18px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(126, 74, 255, 0.3);
-}
-
+/* ────────────────────────────────────
+   Animations
+   ──────────────────────────────────── */
 .chat-item {
-  animation: slideIn 0.4s ease-out;
+  animation: slide-in 0.4s ease-out;
 }
 
-@keyframes slideIn {
+@keyframes slide-in {
   from {
     opacity: 0;
     transform: translateX(-20px);
@@ -282,6 +244,9 @@ const processedChats = computed(() => {
   }
 }
 
+/* ────────────────────────────────────
+   Responsive Design
+   ──────────────────────────────────── */
 @media (max-width: 768px) {
   .chat-item {
     padding: 14px 16px;
@@ -296,10 +261,6 @@ const processedChats = computed(() => {
 
   .title {
     font-size: 15px;
-  }
-
-  .lastMessage {
-    font-size: 13px;
   }
 }
 </style>
