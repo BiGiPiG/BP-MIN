@@ -29,9 +29,12 @@ const router = createRouter({
       redirect: '/login'
     },
     {
-      path: '/profile',
+      path: '/bp-min/:username/profile',
       name: 'Profile',
-      component: () => import('@/components/UserProfile.vue')
+      component: () => import('@/components/UserProfile.vue'),
+      meta: {
+        requiresAuth: true
+      }
     }
   ],
   history: createWebHistory()

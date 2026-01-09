@@ -1,6 +1,6 @@
 <script setup>
 
-import { onMounted, onUnmounted, ref } from 'vue'
+import {computed, onMounted, onUnmounted, ref} from 'vue'
 import { useRouter } from 'vue-router'
 
 import ChatList from '@/components/ChatList.vue'
@@ -37,6 +37,11 @@ const {
 // ─────────────────────────────────────
 // Helper functions
 // ─────────────────────────────────────
+
+const profilePath = computed(() => {
+  const username = localStorage.getItem('username')
+  return username ? `/bp-min/${username}/profile` : '/profile'
+})
 
 const redirectToLogin = () => {
   router.push({ name: 'Login' })
@@ -190,7 +195,7 @@ const sendMessage = async (content) => {
   <button
       v-if="!activeChat"
       class="profile-avatar-button"
-      @click="router.push('/profile')"
+      @click="router.push(profilePath)"
       aria-label="Profile"
   >
     Your profile
