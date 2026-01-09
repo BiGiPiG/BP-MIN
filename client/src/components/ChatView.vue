@@ -1,17 +1,40 @@
 <script setup>
-import { ref, defineEmits, onMounted, computed, watch } from 'vue'
+import { ref, defineEmits, defineProps, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
+
+// Composable
 import { useMessageStore } from '@/utils/useMessages'
 
-//profile panel
+// ─────────────────────────────────────
+// Props & Emits
+// ─────────────────────────────────────
+
+const props = defineProps({
+  currentConversationName: String,
+  currentConversation: [Object, null]
+})
+
+const emit = defineEmits(['return-to-list', 'send-message'])
+
+// ─────────────────────────────────────
+// Reactive State
+// ─────────────────────────────────────
+
+// Profile modal
 const isProfileVisible = ref(false)
 
-const open_profile = () => {
-  isProfileVisible.value = true
-}
+// Message input
+const messageText = ref('')
 
-const closeProfile = () => {
-  isProfileVisible.value = false
-}
+// UI elements
+const floatingElements = ref([])
+const messagesContainer = ref(null)
+
+// User data
+const currentUserId = Number(localStorage.getItem('userId'))
+
+// ─────────────────────────────────────
+// Computed Properties
+// ─────────────────────────────────────
 
 const profileData = computed(() => ({
   username: localStorage.getItem('username') || 'User',
@@ -24,40 +47,24 @@ const profileInitial = computed(() => {
   return profileData.value.username.charAt(0).toUpperCase() || '?'
 })
 
-const emit = defineEmits(['return-to-list', 'send-message'])
-const messageText = ref('')
-const currentUserId = Number(localStorage.getItem('userId'));
-const floatingElements = ref([])
-
-const messageStore = useMessageStore()
-
-const props = defineProps({
-  currentConversationName: String,
-  currentConversation: [Object, null]
-})
-
 const conversationHistory = computed(() => {
   return props.currentConversation?.id
       ? messageStore.getMessages(props.currentConversation.id)
       : []
 })
 
-watch(() => props.currentConversation?.id, (chatId) => {
-  if (chatId) {
-    messageStore.loadMessages(chatId)
-  }
-})
+// ─────────────────────────────────────
+// Composable
+// ─────────────────────────────────────
 
-const handleSendMessage = () => {
-  const text = messageText.value.trim()
-  if (text && props.currentConversationName) {
-    emit('send-message', text)
-    messageText.value = ''
-  }
-}
+const messageStore = useMessageStore()
+
+// ─────────────────────────────────────
+// Lifecycle Hooks
+// ─────────────────────────────────────
 
 onMounted(() => {
-  console.log(props.currentConversation);
+  // Initialize floating background elements
   const elementsArray = []
   for (let i = 0; i < 25; i++) {
     elementsArray.push({
@@ -70,10 +77,71 @@ onMounted(() => {
     })
   }
   floatingElements.value = elementsArray
+
+  // Scroll to bottom after initial render
+  nextTick(() => {
+    scrollToBottom()
+  })
 })
+
+onUnmounted(() => {
+  // Clean up scroll listener if added later
+})
+
+// ─────────────────────────────────────
+// Watchers
+// ─────────────────────────────────────
+
+watch(() => props.currentConversation?.id, (chatId) => {
+  if (chatId) {
+    messageStore.loadMessages(chatId)
+  }
+})
+
+watch(conversationHistory, () => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+}, { deep: true })
+
+// ─────────────────────────────────────
+// Methods
+// ─────────────────────────────────────
+
+// Profile modal
+const openProfile = () => {
+  isProfileVisible.value = true
+}
+
+const closeProfile = () => {
+  isProfileVisible.value = false
+}
+
+// Message handling
+const handleSendMessage = () => {
+  const text = messageText.value.trim()
+  if (text && props.currentConversationName) {
+    emit('send-message', text)
+    messageText.value = ''
+  }
+}
+
+const scrollToBottom = () => {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+// ─────────────────────────────────────
+// Template refs (for future scroll handling)
+// ─────────────────────────────────────
+
+// TODO: Add infinite scroll for loading older messages
+// const handleScroll = () => { ... }
 </script>
 
 <template>
+  <!-- Placeholder state -->
   <div v-if="!props.currentConversationName" class="conversation-placeholder">
     <div class="animated-background">
       <div
@@ -98,15 +166,26 @@ onMounted(() => {
     </div>
   </div>
 
+  <!-- Active conversation -->
   <div v-else class="conversation-interface">
     <div class="conversation-header">
       <button @click="emit('return-to-list')" class="navigation-button">←</button>
-      <div class="contact-name" @click="open_profile">{{ currentConversationName }}</div>
+      <div class="contact-name" @click="openProfile">{{ currentConversationName }}</div>
     </div>
 
-    <div class="messages-container">
-      <div v-for="(message, idx) in conversationHistory" :key="idx" class="message-container">
-        <div :class="message.senderId === currentUserId ? 'message-bubble outgoing' : 'message-bubble incoming'">
+    <div ref="messagesContainer" class="messages-container">
+      <div
+          v-for="(message, idx) in conversationHistory"
+          :key="idx"
+          class="message-container"
+      >
+        <div
+            :class="
+            String(message.senderId) === String(currentUserId)
+              ? 'message-bubble outgoing'
+              : 'message-bubble incoming'
+          "
+        >
           <div class="message-content">{{ message.content }}</div>
           <div class="message-meta">{{ message.sentAt }}</div>
         </div>
@@ -123,6 +202,8 @@ onMounted(() => {
       />
       <button @click="handleSendMessage" class="send-button">Send</button>
     </div>
+
+    <!-- Profile modal -->
     <teleport to="body" v-if="isProfileVisible">
       <div class="profile-overlay" @click="closeProfile">
         <div class="profile-modal" @click.stop>
@@ -165,6 +246,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* ────────────────────────────────────
+   Conversation placeholder
+   ──────────────────────────────────── */
 .conversation-placeholder {
   width: 100%;
   height: 100vh;
@@ -239,6 +323,9 @@ onMounted(() => {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
+/* ────────────────────────────────────
+   Active conversation interface
+   ──────────────────────────────────── */
 .conversation-interface {
   background: linear-gradient(135deg, #f8faff 0%, #fef7ed 100%);
   width: 100%;
@@ -306,6 +393,7 @@ onMounted(() => {
   cursor: pointer;
 }
 
+/* Messages */
 .messages-container {
   flex: 1;
   padding: 28px;
@@ -408,6 +496,7 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.95);
 }
 
+/* Composer */
 .message-composer {
   display: flex;
   padding: 24px 28px;
@@ -460,7 +549,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #f093fb, #667eea);
 }
 
-/* Стили для скроллбара */
+/* Scrollbar */
 .messages-container::-webkit-scrollbar {
   width: 8px;
 }
@@ -479,7 +568,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #f093fb, #667eea);
 }
 
-/* Анимации */
+/* Animations */
 .message-bubble {
   animation: bubble-appear 0.4s ease-out;
 }
@@ -495,7 +584,7 @@ onMounted(() => {
   }
 }
 
-/* Адаптивность */
+/* Responsive */
 @media (max-width: 768px) {
   .conversation-interface {
     border-radius: 0;
@@ -536,7 +625,7 @@ onMounted(() => {
   }
 }
 
-/* Profile Modal Overlay */
+/* Profile Modal */
 .profile-overlay {
   position: fixed;
   top: 0;
