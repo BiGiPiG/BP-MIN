@@ -1,17 +1,21 @@
 <script setup>
-import {onMounted, ref} from 'vue'
-import { useRouter } from 'vue-router';
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// Form fields
 const email = ref('')
 const password = ref('')
 const username = ref('')
+const nickname = ref('')
 const confirmPassword = ref('')
 const showLogin = ref(true)
 
+// Errors
 const usernameError = ref('')
 const emailError = ref('')
+const passwordError = ref('')
 
 const particles = ref([])
 
@@ -32,80 +36,110 @@ onMounted(() => {
 
 const toggleForm = () => {
   showLogin.value = !showLogin.value
-}
-
-const handleSignin = async () => {
-  const response = await fetch("/api/auth/signin", {
-    method: "POST",
-    body: JSON.stringify({
-      username: username.value,
-      password: password.value
-    }),
-    headers: {
-      "Content-type": "application/json",
-    },
-  })
-
-  if (response.ok) {
-    const data = await response.json();
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-
-    const payload = parseJwt(data.accessToken);
-    const username = payload?.sub;
-    const userId = payload.id;
-
-    if (username) {
-      localStorage.setItem('username', username);
-      localStorage.setItem('userId', userId);
-      console.log(username);
-      await router.push(`/bp-min/${username}`);
-    }
-  } else {
-    console.log("error")
-  }
+  usernameError.value = ''
+  emailError.value = ''
+  passwordError.value = ''
 }
 
 const parseJwt = (token) => {
   try {
-    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
   } catch (e) {
-    return null;
+    return null
   }
-};
+}
+
+const handleSignin = async () => {
+  usernameError.value = ''
+  passwordError.value = ''
+
+  if (!username.value.trim() || !password.value.trim()) {
+    passwordError.value = 'Please fill in all fields'
+    return
+  }
+
+  try {
+    const response = await fetch('/api/auth/signin', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: username.value,
+        password: password.value
+      }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+
+      const payload = parseJwt(data.accessToken)
+      const storedUsername = payload?.sub
+      const userId = payload?.id
+
+      if (storedUsername) {
+        localStorage.setItem('username', storedUsername)
+        localStorage.setItem('userId', userId)
+        await router.push(`/bp-min/${storedUsername}`)
+      }
+    } else {
+      const errorData = await response.json().catch(() => ({}))
+      passwordError.value = errorData.message || 'Invalid username or password'
+    }
+  } catch (error) {
+    console.error('Network error:', error)
+    passwordError.value = 'Connection failed. Please try again.'
+  }
+}
 
 const handleSignup = async () => {
   usernameError.value = ''
   emailError.value = ''
+  passwordError.value = ''
+
+  // Validations
+  if (password.value !== confirmPassword.value) {
+    passwordError.value = 'Passwords do not match'
+    return
+  }
+
+  if (password.value.length < 6) {
+    passwordError.value = 'Password must be at least 6 characters'
+    return
+  }
 
   try {
-    const response = await fetch("/api/auth/signup", {
-      method: "POST",
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
       body: JSON.stringify({
+        nickname: nickname.value,
         username: username.value,
         email: email.value,
         password: password.value
       }),
       headers: {
-        "Content-type": "application/json",
-      },
+        'Content-Type': 'application/json'
+      }
     })
 
     const data = await response.json()
 
     if (!response.ok) {
-      if (data.message === "Username is already taken") {
-        usernameError.value = "Username is already taken"
-      } else if (data.message === "Email is already taken") {
-        emailError.value = "Email is already taken"
+      if (data.errorCode === 'USERNAME_ALREADY_EXISTS') {
+        usernameError.value = 'Username is already taken'
+      } else if (data.errorCode === 'EMAIL_ALREADY_EXISTS') {
+        emailError.value = 'Email is already taken'
       } else {
-        console.error("Signup error:", data.message)
+        passwordError.value = data.message || 'Registration failed'
       }
     } else {
       toggleForm()
     }
   } catch (error) {
-    console.error("Network error:", error)
+    console.error('Network error:', error)
+    passwordError.value = 'Connection failed. Please try again.'
   }
 }
 </script>
@@ -118,52 +152,77 @@ const handleSignup = async () => {
           :key="p.id"
           class="particle"
           :style="{
-            top: `${p.top}%`,
-            left: `${p.left}%`,
-            width: `${p.size}px`,
-            height: `${p.size}px`,
-            animationDelay: `${p.delay}s`,
-            animationDuration: `${p.duration}s`
-          }"
+          top: `${p.top}%`,
+          left: `${p.left}%`,
+          width: `${p.size}px`,
+          height: `${p.size}px`,
+          animationDelay: `${p.delay}s`,
+          animationDuration: `${p.duration}s`
+        }"
       ></div>
     </div>
 
     <div class="form-container">
+      <!-- Sign in form -->
       <div class="form-card login-card" :class="{ active: showLogin }">
         <h2>SIGN IN</h2>
         <div class="input-group">
           <span class="icon">👤</span>
-          <input type="email" v-model="username" placeholder="username" required />
+          <input type="text" v-model="username" placeholder="Username" required />
         </div>
-        <div class="input-group password-input">
+        <div v-if="usernameError && showLogin" class="error-message">
+          {{ usernameError }}
+        </div>
+
+        <div class="input-group">
           <span class="icon">🔒</span>
-          <input type="password" v-model="password" placeholder="password" required />
+          <input type="password" v-model="password" placeholder="Password" required />
         </div>
-        <button @click="handleSignin" class="sign-in-btn">Sign In</button>
+        <div v-if="passwordError && showLogin" class="error-message">
+          {{ passwordError }}
+        </div>
+
+        <button @click="handleSignin" class="btn sign-in-btn">Sign In</button>
         <p class="switch-form">
           Create Account? <span @click="toggleForm" class="link">Sign Up</span>
         </p>
       </div>
 
-      <div class="form-card Signup-card" :class="{ active: !showLogin }">
+      <!-- Sign up form -->
+      <div class="form-card signup-card" :class="{ active: !showLogin }">
         <h2>SIGN UP</h2>
+
         <div class="input-group">
           <span class="icon">👤</span>
-          <input type="text" v-model="username" :placeholder="usernameError || 'username'" required />
+          <input type="text" v-model="nickname" placeholder="Nickname" required />
         </div>
+
+        <div class="input-group">
+          <span class="icon">👤</span>
+          <input type="text" v-model="username" placeholder="Username" required />
+        </div>
+        <div v-if="usernameError && !showLogin" class="error-message">{{ usernameError }}</div>
+
         <div class="input-group">
           <span class="icon">✉️</span>
-          <input type="text" v-model="email" :placeholder="emailError || 'email'" required />
+          <input type="email" v-model="email" placeholder="Email" required />
         </div>
+        <div v-if="emailError" class="error-message">{{ emailError }}</div>
+
         <div class="input-group">
           <span class="icon">🔑</span>
-          <input type="password" v-model="password" placeholder="password" required />
+          <input type="password" v-model="password" placeholder="Password" required />
         </div>
+
         <div class="input-group">
           <span class="icon">🔄</span>
-          <input type="password" v-model="confirmPassword" placeholder="confirm password" required />
+          <input type="password" v-model="confirmPassword" placeholder="Confirm Password" required />
         </div>
-        <button @click="handleSignup" class="Signup-btn">Sign Up</button>
+        <div v-if="passwordError && !showLogin" class="error-message">
+          {{ passwordError }}
+        </div>
+
+        <button @click="handleSignup" class="btn signup-btn">Sign Up</button>
         <p class="switch-form">
           Already have account? <span @click="toggleForm" class="link">Sign In</span>
         </p>
@@ -173,23 +232,28 @@ const handleSignup = async () => {
 </template>
 
 <style scoped>
+/* ────────────────────────────────────
+   General settings
+   ──────────────────────────────────── */
 *, *::before, *::after {
-  box-sizing: inherit;
+  box-sizing: border-box;
 }
 
+/* ────────────────────────────────────
+   Controllers and background
+   ──────────────────────────────────── */
 .login-container {
   min-height: 100vh;
   width: 100vw;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   position: relative;
   overflow: hidden;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: linear-gradient(135deg, #8e44ad, #6a3093);
   margin: 0;
   padding: 0;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: linear-gradient(135deg, #8e44ad, #6a3093);
 }
 
 .background {
@@ -202,13 +266,18 @@ const handleSignup = async () => {
   overflow: hidden;
 }
 
+/* ────────────────────────────────────
+   Particulars
+   ──────────────────────────────────── */
 .particle {
   position: absolute;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
   background: rgba(255, 255, 255, 0.4);
   border-radius: 50%;
-  animation: float 5s infinite ease-in-out;
-  z-index: 2;
   box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  animation: float 5s infinite ease-in-out;
 }
 
 @keyframes float {
@@ -230,18 +299,9 @@ const handleSignup = async () => {
   }
 }
 
-@keyframes wave-animation {
-  0% {
-    transform: translateX(0) translateZ(0) scaleY(1);
-  }
-  50% {
-    transform: translateX(-25%) translateZ(0) scaleY(0.8);
-  }
-  100% {
-    transform: translateX(-50%) translateZ(0) scaleY(1);
-  }
-}
-
+/* ────────────────────────────────────
+   Forms and cards
+   ──────────────────────────────────── */
 .form-container {
   display: flex;
   gap: 20px;
@@ -250,17 +310,17 @@ const handleSignup = async () => {
 }
 
 .form-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.4s ease;
   width: 300px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  transition: all 0.4s ease;
 }
 
 .form-card:not(.active) {
@@ -276,19 +336,25 @@ const handleSignup = async () => {
   pointer-events: auto;
 }
 
-h2 {
+/* ────────────────────────────────────
+   Headers
+   ──────────────────────────────────── */
+.form-card h2 {
+  margin: 0 0 20px;
   font-size: 24px;
-  margin-bottom: 20px;
+  font-weight: bold;
   color: #333;
   text-align: center;
-  font-weight: bold;
-  font-family: "Raleway ExtraBold",serif;
+  font-family: "Raleway ExtraBold", serif;
 }
 
+/* ────────────────────────────────────
+   input fields
+   ──────────────────────────────────── */
 .input-group {
   position: relative;
-  margin-bottom: 20px;
   width: 100%;
+  margin-bottom: 20px;
 }
 
 .input-group .icon {
@@ -296,10 +362,10 @@ h2 {
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: #888;
-  pointer-events: none;
-  font-size: 16px;
   z-index: 2;
+  color: #888;
+  font-size: 16px;
+  pointer-events: none;
 }
 
 .input-group input {
@@ -307,13 +373,12 @@ h2 {
   padding: 12px 15px 12px 48px;
   border: 1px solid #ddd;
   border-radius: 15px;
-  font-size: 14px;
   background: #fafafa;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  box-sizing: border-box;
-  outline: none;
   color: #333;
-  font-family: inherit;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -321,7 +386,6 @@ h2 {
 
 .input-group input::placeholder {
   color: #aaa;
-  opacity: 1;
 }
 
 .input-group input:focus {
@@ -329,17 +393,35 @@ h2 {
   box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.15);
 }
 
-.sign-in-btn {
+/* ────────────────────────────────────
+   Error message
+   ──────────────────────────────────── */
+.error-message {
+  width: 100%;
+  margin-top: -12px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #e74c3c;
+  text-align: left;
+}
+
+/* ────────────────────────────────────
+   Buttons
+   ──────────────────────────────────── */
+.btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
-  color: white;
   border: none;
   border-radius: 15px;
   font-size: 16px;
   font-weight: bold;
+  color: white;
   cursor: pointer;
   transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.sign-in-btn {
+  background: linear-gradient(45deg, #ff6b6b, #ff8e53);
   box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
 }
 
@@ -348,39 +430,36 @@ h2 {
   box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
 }
 
-.Signup-btn {
-  width: 100%;
-  padding: 12px;
+.signup-btn {
   background: linear-gradient(45deg, #9b59b6, #8e44ad);
-  color: white;
-  border: none;
-  border-radius: 15px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: transform 0.3s, box-shadow 0.3s;
   box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
 }
 
-.Signup-btn:hover {
+.signup-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
 }
 
+/* ────────────────────────────────────
+   Forms switching
+   ──────────────────────────────────── */
 .switch-form {
   margin-top: 20px;
-  text-align: center;
   font-size: 14px;
   color: #666;
+  text-align: center;
 }
 
 .switch-form .link {
   color: #8e44ad;
   text-decoration: underline;
-  cursor: pointer;
   font-weight: bold;
+  cursor: pointer;
 }
 
+/* ────────────────────────────────────
+   Adaptability
+   ──────────────────────────────────── */
 @media (max-width: 768px) {
   .form-container {
     flex-direction: column;
@@ -398,7 +477,7 @@ h2 {
     padding: 20px;
   }
 
-  h2 {
+  .form-card h2 {
     font-size: 20px;
   }
 
@@ -407,7 +486,7 @@ h2 {
     font-size: 13px;
   }
 
-  .sign-in-btn, .Signup-btn {
+  .btn {
     padding: 10px;
     font-size: 14px;
   }
