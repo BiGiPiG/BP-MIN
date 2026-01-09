@@ -1,6 +1,14 @@
 <script setup>
-import { ref, watch } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
+// ─────────────────────────────────────
+// Imports
+// ─────────────────────────────────────
+
+import {ref, watch} from 'vue'
+import {useDebounceFn} from '@vueuse/core'
+
+// ─────────────────────────────────────
+// Props & Emits
+// ─────────────────────────────────────
 
 const props = defineProps({
   placeholder: {
@@ -15,14 +23,27 @@ const props = defineProps({
 
 const emit = defineEmits(['user-selected', 'search-change'])
 
+// ─────────────────────────────────────
+// Reactive State
+// ─────────────────────────────────────
+
 const searchQuery = ref('')
 const isFocused = ref(false)
 const isLoading = ref(false)
 const searchResults = ref([])
 const error = ref(null)
 
+// ─────────────────────────────────────
+// Computed Properties
+// ─────────────────────────────────────
+
+// ─────────────────────────────────────
+// Methods
+// ─────────────────────────────────────
+
 const performSearch = useDebounceFn(async (query) => {
-  if (!query.trim()) {
+  const trimmedQuery = query.trim()
+  if (!trimmedQuery) {
     searchResults.value = []
     return
   }
@@ -31,23 +52,26 @@ const performSearch = useDebounceFn(async (query) => {
   error.value = null
 
   try {
-    const params = new URLSearchParams();
-    params.append('searchTerm', query);
+    const params = new URLSearchParams()
+    params.append('searchTerm', trimmedQuery)
 
     const response = await fetch(`/api/users/search?${params.toString()}`, {
-      method: "GET",
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         'Content-Type': 'application/json'
       }
-    });
+    })
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      console.error('HTTP error!', response.status)
+      error.value = 'Failed to load users'
+      searchResults.value = []
+      isLoading.value = false
+      return
     }
 
-    const users = await response.json()
-    searchResults.value = users
+    searchResults.value = await response.json()
   } catch (err) {
     console.error('Search error:', err)
     error.value = 'Failed to load users'
@@ -56,11 +80,6 @@ const performSearch = useDebounceFn(async (query) => {
     isLoading.value = false
   }
 }, 300)
-
-watch(searchQuery, (newQuery) => {
-  emit('search-change', newQuery)
-  performSearch(newQuery)
-})
 
 const handleInput = (event) => {
   searchQuery.value = event.target.value
@@ -77,32 +96,50 @@ const clearSearch = () => {
   searchResults.value = []
   emit('search-change', '')
 }
+
+// ─────────────────────────────────────
+// Watchers
+// ─────────────────────────────────────
+
+watch(searchQuery, (newQuery) => {
+  emit('search-change', newQuery)
+  performSearch(newQuery)
+})
 </script>
 
 <template>
   <div class="search-bar-container">
+    <!-- Search Input -->
     <div class="search-input-wrapper" :class="{ focused: isFocused }">
       <span class="search-icon">🔍</span>
+
       <input
           v-model="searchQuery"
           type="text"
-          :placeholder="placeholder"
+          :placeholder="props.placeholder"
           class="search-input"
           @focus="isFocused = true"
           @blur="isFocused = false"
           @input="handleInput"
       />
+
       <div v-if="isLoading" class="loading-spinner"></div>
+
       <button
           v-if="searchQuery"
           @click="clearSearch"
           class="clear-btn"
+          aria-label="Clear search"
       >
         ✕
       </button>
     </div>
 
-    <div v-if="searchResults.length > 0 && searchQuery" class="search-results">
+    <!-- Search Results -->
+    <div
+        v-if="searchResults.length > 0 && searchQuery"
+        class="search-results"
+    >
       <div
           v-for="user in searchResults"
           :key="user.id"
@@ -110,7 +147,7 @@ const clearSearch = () => {
           @mousedown="selectUser(user)"
       >
         <div class="user-avatar">
-          {{ (user.username)?.charAt(0)?.toUpperCase() }}
+          {{ user.username?.charAt(0)?.toUpperCase() || '?' }}
         </div>
         <div class="user-info">
           <div class="user-name">{{ user.username }}</div>
@@ -118,7 +155,11 @@ const clearSearch = () => {
       </div>
     </div>
 
-    <div v-else-if="searchQuery && searchResults.length === 0 && !isLoading" class="no-results">
+    <!-- No Results -->
+    <div
+        v-else-if="searchQuery && searchResults.length === 0 && !isLoading"
+        class="no-results"
+    >
       <div class="no-results-icon">😕</div>
       <div class="no-results-text">No users found</div>
     </div>
@@ -126,6 +167,9 @@ const clearSearch = () => {
 </template>
 
 <style scoped>
+/* ────────────────────────────────────
+   Loading Spinner
+   ──────────────────────────────────── */
 .loading-spinner {
   width: 20px;
   height: 20px;
@@ -142,6 +186,9 @@ const clearSearch = () => {
   100% { transform: rotate(360deg); }
 }
 
+/* ────────────────────────────────────
+   Search Bar Container
+   ──────────────────────────────────── */
 .search-bar-container {
   position: relative;
   width: 98%;
@@ -149,6 +196,9 @@ const clearSearch = () => {
   height: 50px;
 }
 
+/* ────────────────────────────────────
+   Search Input Wrapper
+   ──────────────────────────────────── */
 .search-input-wrapper {
   display: flex;
   align-items: center;
@@ -190,6 +240,9 @@ const clearSearch = () => {
   font-weight: 400;
 }
 
+/* ────────────────────────────────────
+   Clear Button
+   ──────────────────────────────────── */
 .clear-btn {
   background: linear-gradient(135deg, #f97316, #fdba74);
   border: none;
@@ -212,6 +265,9 @@ const clearSearch = () => {
   background: linear-gradient(135deg, #ea580c, #f97316);
 }
 
+/* ────────────────────────────────────
+   Search Results Dropdown
+   ──────────────────────────────────── */
 .search-results {
   position: absolute;
   top: 100%;
@@ -227,10 +283,10 @@ const clearSearch = () => {
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
-  animation: slideDown 0.2s ease-out;
+  animation: slide-down 0.2s ease-out;
 }
 
-@keyframes slideDown {
+@keyframes slide-down {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -279,16 +335,6 @@ const clearSearch = () => {
   min-width: 0;
 }
 
-.user-nick {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .user-name {
   font-size: 13px;
   color: #8b5cf6;
@@ -298,6 +344,9 @@ const clearSearch = () => {
   white-space: nowrap;
 }
 
+/* ────────────────────────────────────
+   No Results State
+   ──────────────────────────────────── */
 .no-results {
   position: absolute;
   top: 100%;
@@ -313,7 +362,7 @@ const clearSearch = () => {
       0 4px 20px rgba(126, 74, 255, 0.1);
   border: 1px solid rgba(126, 74, 255, 0.1);
   z-index: 1000;
-  animation: slideDown 0.2s ease-out;
+  animation: slide-down 0.2s ease-out;
 }
 
 .no-results-icon {
@@ -328,6 +377,9 @@ const clearSearch = () => {
   font-weight: 500;
 }
 
+/* ────────────────────────────────────
+   Scrollbar
+   ──────────────────────────────────── */
 .search-results::-webkit-scrollbar {
   width: 6px;
 }
@@ -346,6 +398,9 @@ const clearSearch = () => {
   background: linear-gradient(135deg, #f97316, #7e4aff);
 }
 
+/* ────────────────────────────────────
+   Responsive Design
+   ──────────────────────────────────── */
 @media (max-width: 768px) {
   .search-input-wrapper {
     padding: 6px 14px;
@@ -362,10 +417,6 @@ const clearSearch = () => {
   .user-avatar {
     width: 36px;
     height: 36px;
-    font-size: 14px;
-  }
-
-  .user-nick {
     font-size: 14px;
   }
 
