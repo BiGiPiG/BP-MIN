@@ -77,7 +77,7 @@ const handleSignin = async () => {
 
       const payload = parseJwt(data.accessToken)
       const storedUsername = payload?.sub
-      const userId = payload?.id
+      const userId = payload?.userId
 
       if (storedUsername) {
         localStorage.setItem('username', storedUsername)

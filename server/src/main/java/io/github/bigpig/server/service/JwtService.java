@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -33,6 +34,7 @@ public class JwtService {
 
     private String generateToken(User user, long expiryTime) {
         return Jwts.builder()
+                .claims(Map.of("userId", user.getId()))
                 .subject(user.getUsername())
                 .issuer("bp-min")
                 .issuedAt(new Date(System.currentTimeMillis()))
