@@ -1,8 +1,16 @@
 <script setup>
-import {ref, onMounted, computed} from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
+// ─────────────────────────────────────
+// Setup
+// ─────────────────────────────────────
+
 const router = useRouter()
+
+// ─────────────────────────────────────
+// Reactive State
+// ─────────────────────────────────────
 
 const profileData = ref({
   username: '',
@@ -12,6 +20,20 @@ const profileData = ref({
 })
 
 let initialData = {}
+
+// ─────────────────────────────────────
+// Computed Properties
+// ─────────────────────────────────────
+
+const profileInitial = computed(() => {
+  return profileData.value.username.charAt(0).toUpperCase() || '?'
+})
+
+const profileGradient = 'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)'
+
+// ─────────────────────────────────────
+// Lifecycle Hooks
+// ─────────────────────────────────────
 
 onMounted(() => {
   profileData.value = {
@@ -23,18 +45,18 @@ onMounted(() => {
   initialData = { ...profileData.value }
 })
 
-const profileInitial = computed(() => {
-  return profileData.value.username.charAt(0).toUpperCase() || '?'
-})
-
-const profileGradient = 'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)'
+// ─────────────────────────────────────
+// Methods
+// ─────────────────────────────────────
 
 const saveChanges = () => {
   const { username, userId, bio, birthDate } = profileData.value
+
   localStorage.setItem('username', username)
   localStorage.setItem('userId', userId)
   localStorage.setItem('userBio', bio)
   localStorage.setItem('userBirthDate', birthDate)
+
   initialData = { ...profileData.value }
   alert('Изменения сохранены!')
 }
@@ -51,7 +73,7 @@ const goBack = () => {
 <template>
   <div class="user-profile-outer">
     <div class="user-profile-container">
-      <!-- Заголовок -->
+      <!-- Header -->
       <div class="profile-header">
         <button class="back-button" @click="goBack" aria-label="Назад">
           ←
@@ -59,14 +81,14 @@ const goBack = () => {
         <h1 class="profile-title">Мой профиль</h1>
       </div>
 
-      <!-- Аватар -->
+      <!-- Avatar -->
       <div class="avatar-section">
         <div class="avatar-large" :style="{ background: profileGradient }">
           {{ profileInitial }}
         </div>
       </div>
 
-      <!-- Поля профиля -->
+      <!-- Profile Fields -->
       <div class="fields-grid">
         <div class="field">
           <label class="field-label">Имя пользователя</label>
@@ -108,7 +130,7 @@ const goBack = () => {
         </div>
       </div>
 
-      <!-- Кнопки управления -->
+      <!-- Action Buttons -->
       <div class="actions">
         <button class="btn btn-secondary" @click="discardChanges">
           Отменить
@@ -122,7 +144,9 @@ const goBack = () => {
 </template>
 
 <style scoped>
-/* Внешний контейнер — полупрозрачный фон с blur (эффект "стекла") */
+/* ────────────────────────────────────
+   Outer Container
+   ──────────────────────────────────── */
 .user-profile-outer {
   display: flex;
   justify-content: center;
@@ -131,21 +155,22 @@ const goBack = () => {
   height: 100dvh;
   padding: 20px;
   box-sizing: border-box;
-  /* Фон убран — он будет снаружи, как в чатах */
 }
 
-/* Панель профиля — чисто белая, как в ChatList и SearchBar */
+/* ────────────────────────────────────
+   Profile Container
+   ──────────────────────────────────── */
 .user-profile-container {
   width: 100%;
   max-width: 760px;
   min-width: 300px;
   padding: 48px 40px;
-  background: white; /* как в sideBar */
+  background: white;
   border-radius: 24px;
   box-shadow:
       0 20px 60px rgba(0, 0, 0, 0.12),
       0 8px 24px rgba(0, 0, 0, 0.06);
-  border: 1px solid #f0f0f0; /* как в sideBar */
+  border: 1px solid #f0f0f0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
@@ -161,7 +186,9 @@ const goBack = () => {
   display: none;
 }
 
-/* Остальной CSS без изменений, но убираем backdrop-filter и прозрачность */
+/* ────────────────────────────────────
+   Layout Sections
+   ──────────────────────────────────── */
 .profile-header,
 .avatar-section,
 .fields-grid,
@@ -169,6 +196,9 @@ const goBack = () => {
   flex-shrink: 0;
 }
 
+/* ────────────────────────────────────
+   Back Button
+   ──────────────────────────────────── */
 .back-button {
   width: 44px;
   height: 44px;
@@ -190,6 +220,9 @@ const goBack = () => {
   transform: translateX(-2px);
 }
 
+/* ────────────────────────────────────
+   Profile Title
+   ──────────────────────────────────── */
 .profile-title {
   font-size: 28px;
   font-weight: 700;
@@ -199,7 +232,9 @@ const goBack = () => {
   text-align: center;
 }
 
-/* Секция с аватаром */
+/* ────────────────────────────────────
+   Avatar Section
+   ──────────────────────────────────── */
 .avatar-section {
   display: flex;
   justify-content: center;
@@ -228,7 +263,9 @@ const goBack = () => {
   transform: scale(1.05);
 }
 
-/* Сетка полей */
+/* ────────────────────────────────────
+   Form Fields Grid
+   ──────────────────────────────────── */
 .fields-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -274,6 +311,9 @@ const goBack = () => {
   box-shadow: 0 0 0 4px rgba(126, 74, 255, 0.15);
 }
 
+/* ────────────────────────────────────
+   Textarea Specific
+   ──────────────────────────────────── */
 .field-textarea {
   min-height: 120px;
   max-height: 120px;
@@ -300,14 +340,16 @@ const goBack = () => {
   background: #a1a1a1;
 }
 
-/* Кнопки */
+/* ────────────────────────────────────
+   Action Buttons
+   ──────────────────────────────────── */
 .actions {
   display: flex;
   gap: 16px;
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid #f0f0f0;
-  flex-shrink: 0; /* кнопки не должны сжиматься */
+  flex-shrink: 0;
 }
 
 .btn {
@@ -343,7 +385,9 @@ const goBack = () => {
   transform: translateY(-2px);
 }
 
-/* Адаптивность */
+/* ────────────────────────────────────
+   Responsive Design
+   ──────────────────────────────────── */
 @media (max-width: 768px) {
   .user-profile-outer {
     padding: 16px;
