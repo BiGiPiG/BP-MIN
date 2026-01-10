@@ -4,7 +4,7 @@ import io.github.bigpig.server.dto.auth.AuthenticationResponseDto;
 import io.github.bigpig.server.dto.auth.LoginRequestDto;
 import io.github.bigpig.server.entity.auth.Role;
 import io.github.bigpig.server.entity.auth.Token;
-import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.exceptions.AuthException;
 import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.repository.TokenRepository;

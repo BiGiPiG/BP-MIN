@@ -1,6 +1,6 @@
 package io.github.bigpig.server.service;
 
-import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.entity.user.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.List;

@@ -1,6 +1,6 @@
 package io.github.bigpig.server.entity.chat;
 
-import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.entity.user.User;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,6 +1,6 @@
 package io.github.bigpig.server.repository;
 
-import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.entity.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

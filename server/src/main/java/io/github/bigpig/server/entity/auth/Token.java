@@ -1,5 +1,6 @@
 package io.github.bigpig.server.entity.auth;
 
+import io.github.bigpig.server.entity.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 

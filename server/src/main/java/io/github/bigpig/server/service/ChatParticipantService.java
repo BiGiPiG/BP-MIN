@@ -1,7 +1,7 @@
 package io.github.bigpig.server.service;
 
 import io.github.bigpig.server.dto.chat.ParticipantInfo;
-import io.github.bigpig.server.entity.auth.User;
+import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.entity.chat.Chat;
 import io.github.bigpig.server.repository.ChatParticipantRepository;
 import lombok.RequiredArgsConstructor;
