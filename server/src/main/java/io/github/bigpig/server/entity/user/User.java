@@ -1,5 +1,7 @@
-package io.github.bigpig.server.entity.auth;
+package io.github.bigpig.server.entity.user;
 
+import io.github.bigpig.server.entity.auth.Role;
+import io.github.bigpig.server.entity.auth.Token;
 import io.github.bigpig.server.entity.chat.ChatParticipant;
 import jakarta.persistence.*;
 import lombok.*;
@@ -42,6 +44,10 @@ public class User implements UserDetails, Principal {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "profile_id", referencedColumnName = "id")
+    private Profile profile;
 
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
