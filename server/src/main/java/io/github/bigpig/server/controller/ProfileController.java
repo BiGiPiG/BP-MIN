@@ -22,9 +22,9 @@ public class ProfileController {
         return ResponseEntity.ok(profile);
     }
 
-    @PutMapping("/update")
-    public ResponseEntity<ProfileDto> updateUserProfile(@RequestBody ProfileDto profileDto) {
-        log.info("Updating profile for user : {}", profileDto.username());
+    @PutMapping("/{username}")
+    public ResponseEntity<ProfileDto> updateUserProfile(@PathVariable String username, @RequestBody ProfileDto profileDto) {
+        log.info("Updating profile for user : {}", username);
         ProfileDto newProfile = profileService.updateProfile(profileDto);
         return ResponseEntity.ok(newProfile);
     }
