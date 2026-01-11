@@ -14,7 +14,7 @@ const router = useRouter()
 
 const profileData = ref({
   username: '',
-  userId: '',
+  nickname: '',
   bio: '',
   birthDate: ''
 })
@@ -35,31 +35,64 @@ const profileGradient = 'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)'
 // Lifecycle Hooks
 // ─────────────────────────────────────
 
-onMounted(() => {
-  profileData.value = {
-    username: localStorage.getItem('username') || 'User',
-    userId: localStorage.getItem('userId') || '',
-    bio: localStorage.getItem('userBio') || '',
-    birthDate: localStorage.getItem('userBirthDate') || ''
+onMounted(async () => {
+  try {
+    const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
+      method: "GET",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    const data = await response.json()
+    console.log(data)
+
+    profileData.value = {
+      username: data.username || '',
+      nickname: data.nickname || '',
+      bio: data.bio || '',
+      birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : ''
+    }
+
+    initialData = { ...profileData.value }
+  } catch (error) {
+    console.error('Ошибка загрузки профиля:', error)
   }
-  initialData = { ...profileData.value }
 })
 
 // ─────────────────────────────────────
 // Methods
 // ─────────────────────────────────────
 
-const saveChanges = () => {
-  const { username, userId, bio, birthDate } = profileData.value
+const saveChanges = async () => {
+  const { nickname, username, bio, birthDate } = profileData.value;
 
-  localStorage.setItem('username', username)
-  localStorage.setItem('userId', userId)
-  localStorage.setItem('userBio', bio)
-  localStorage.setItem('userBirthDate', birthDate)
+  try {
+    const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        nickname,
+        username,
+        birthDate,
+        bio
+      })
+    });
 
-  initialData = { ...profileData.value }
-  alert('Изменения сохранены!')
-}
+    if (!response.ok) {
+      console.error('Ошибка HTTP:', response.status);
+      return;
+    }
+
+    initialData = { ...profileData.value };
+  } catch (error) {
+    console.error('Ошибка при сохранении профиля:', error);
+  }
+};
 
 const discardChanges = () => {
   profileData.value = { ...initialData }
@@ -93,7 +126,7 @@ const goBack = () => {
         <div class="field">
           <label class="field-label">Имя пользователя</label>
           <input
-              v-model="profileData.username"
+              v-model="profileData.nickname"
               type="text"
               class="field-input"
               placeholder="Введите имя"
@@ -103,7 +136,7 @@ const goBack = () => {
         <div class="field">
           <label class="field-label">ID пользователя</label>
           <input
-              v-model="profileData.userId"
+              v-model="profileData.username"
               type="text"
               class="field-input"
               placeholder="Введите ID"
