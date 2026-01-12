@@ -1,20 +1,17 @@
 package io.github.bigpig.server.dto.chat;
 
-import io.github.bigpig.server.entity.chat.Chat;
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.time.LocalDateTime;
 
 public record MessageDto(
-        Long chatId,               // ID чата
-        String senderId,             // ID отправителя
-        String content,            // текст сообщения
-        LocalDateTime sentAt       // когда отправлено
-) {
-    public static MessageDto of(Chat.ChatMessage message) {
-        return new MessageDto(
-            message.getChat().getId(),
-            message.getSenderId(),
-            message.getContent(),
-            message.getSentAt()
-        );
-    }
-}
+        Long id,                       // message ID
+        Long chatId,                   // chat ID
+        String senderId,               // sender ID
+        String content,                // message content
+
+        @JsonFormat(pattern = "HH:mm")
+        LocalDateTime shortSentAt,     // send time
+
+        String fullSentAt              // send date with time
+) {}

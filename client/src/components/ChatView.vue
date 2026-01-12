@@ -1,7 +1,5 @@
 <script setup>
 import { ref, defineEmits, defineProps, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-
-// Composable
 import { useMessageStore } from '@/utils/useMessages'
 
 // ─────────────────────────────────────
@@ -13,24 +11,28 @@ const props = defineProps({
   currentConversation: [Object, null]
 })
 
-const emit = defineEmits(['return-to-list', 'send-message'])
+const emit = defineEmits(['return-to-list', 'send-message', 'delete-message'])
 
 // ─────────────────────────────────────
 // Reactive State
 // ─────────────────────────────────────
 
-// Profile modal
 const isProfileVisible = ref(false)
-
-// Message input
 const messageText = ref('')
-
-// UI elements
-const floatingElements = ref([])
 const messagesContainer = ref(null)
-
-// User data
 const currentUserId = Number(localStorage.getItem('userId'))
+
+// Context menu state
+const contextMenu = ref({
+  visible: false,
+  x: 0,
+  y: 0,
+  messageId: null
+})
+
+// Scrollbar visibility
+const isScrollbarVisible = ref(true)
+let scrollActivityTimeout = null
 
 // ─────────────────────────────────────
 // Computed Properties
@@ -53,6 +55,8 @@ const conversationHistory = computed(() => {
       : []
 })
 
+const isScrollLocked = computed(() => contextMenu.value.visible)
+
 // ─────────────────────────────────────
 // Composable
 // ─────────────────────────────────────
@@ -64,7 +68,6 @@ const messageStore = useMessageStore()
 // ─────────────────────────────────────
 
 onMounted(() => {
-  // Initialize floating background elements
   const elementsArray = []
   for (let i = 0; i < 25; i++) {
     elementsArray.push({
@@ -78,14 +81,18 @@ onMounted(() => {
   }
   floatingElements.value = elementsArray
 
-  // Scroll to bottom after initial render
   nextTick(() => {
     scrollToBottom()
   })
+
+  document.addEventListener('click', hideContextMenu)
 })
 
 onUnmounted(() => {
-  // Clean up scroll listener if added later
+  document.removeEventListener('click', hideContextMenu)
+  if (scrollActivityTimeout) {
+    clearTimeout(scrollActivityTimeout)
+  }
 })
 
 // ─────────────────────────────────────
@@ -108,16 +115,11 @@ watch(conversationHistory, () => {
 // Methods
 // ─────────────────────────────────────
 
-// Profile modal
-const openProfile = () => {
-  isProfileVisible.value = true
-}
+// Profile
+const openProfile = () => isProfileVisible.value = true
+const closeProfile = () => isProfileVisible.value = false
 
-const closeProfile = () => {
-  isProfileVisible.value = false
-}
-
-// Message handling
+// Message input
 const handleSendMessage = () => {
   const text = messageText.value.trim()
   if (text && props.currentConversationName) {
@@ -132,12 +134,59 @@ const scrollToBottom = () => {
   }
 }
 
-// ─────────────────────────────────────
-// Template refs (for future scroll handling)
-// ─────────────────────────────────────
+// Tooltip
+const hoveredMessageId = ref(null)
+const showTooltip = (id) => hoveredMessageId.value = id
+const hideTooltip = () => hoveredMessageId.value = null
 
-// TODO: Add infinite scroll for loading older messages
-// const handleScroll = () => { ... }
+// Scrollbar activity
+const showScrollbar = () => {
+  isScrollbarVisible.value = true
+  if (scrollActivityTimeout) {
+    clearTimeout(scrollActivityTimeout)
+  }
+  scrollActivityTimeout = setTimeout(() => {
+    isScrollbarVisible.value = false
+  }, 1500)
+}
+
+// Context Menu
+const preventDefaultContextMenu = (e) => {
+  e.preventDefault()
+}
+
+const showContextMenu = (e, message) => {
+  e.preventDefault()
+  if (String(message.senderId) !== String(currentUserId)) return
+
+  // Ensure menu stays in viewport
+  const x = Math.max(e.clientX, 140)
+  const y = Math.max(e.clientY, 60)
+
+  contextMenu.value = {
+    visible: true,
+    x,
+    y,
+    messageId: message.id
+  }
+}
+
+const hideContextMenu = () => {
+  contextMenu.value.visible = false
+}
+
+const handleEditMessage = () => {
+  console.log('Edit message:', contextMenu.value.messageId)
+  hideContextMenu()
+}
+
+const handleDeleteMessage = () => {
+  emit('delete-message', contextMenu.value.messageId)
+  hideContextMenu()
+}
+
+// Floating background (for placeholder)
+const floatingElements = ref([])
 </script>
 
 <template>
@@ -173,10 +222,21 @@ const scrollToBottom = () => {
       <div class="contact-name" @click="openProfile">{{ currentConversationName }}</div>
     </div>
 
-    <div ref="messagesContainer" class="messages-container">
+    <div
+        ref="messagesContainer"
+        class="messages-container"
+        :class="{ 'scroll-locked': isScrollLocked, 'scrollbar-visible': isScrollbarVisible }"
+        @contextmenu="preventDefaultContextMenu"
+        @scroll="showScrollbar"
+        @mouseenter="showScrollbar"
+        @mouseleave="() => {
+          if (scrollActivityTimeout) clearTimeout(scrollActivityTimeout)
+          scrollActivityTimeout = setTimeout(() => { isScrollbarVisible.value = false }, 500)
+        }"
+    >
       <div
-          v-for="(message, idx) in conversationHistory"
-          :key="idx"
+          v-for="message in conversationHistory"
+          :key="message.id"
           class="message-container"
       >
         <div
@@ -185,9 +245,24 @@ const scrollToBottom = () => {
               ? 'message-bubble outgoing'
               : 'message-bubble incoming'
           "
+            @contextmenu="(e) => showContextMenu(e, message)"
         >
           <div class="message-content">{{ message.content }}</div>
-          <div class="message-meta">{{ message.sentAt }}</div>
+          <div class="message-meta-wrapper">
+            <div
+                class="message-meta"
+                @mouseenter="() => showTooltip(message.id)"
+                @mouseleave="hideTooltip"
+            >
+              {{ message.shortSentAt }}
+              <div
+                  v-if="hoveredMessageId === message.id"
+                  class="custom-tooltip"
+              >
+                {{ message.fullSentAt }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -242,13 +317,115 @@ const scrollToBottom = () => {
         </div>
       </div>
     </teleport>
+
+    <!-- Context Menu -->
+    <teleport to="body" v-if="contextMenu.visible">
+      <div
+          class="context-menu"
+          :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+          @click.stop
+      >
+        <button @click="handleEditMessage" class="context-menu-item">Edit</button>
+        <button @click="handleDeleteMessage" class="context-menu-item delete">Delete</button>
+      </div>
+    </teleport>
   </div>
 </template>
 
 <style scoped>
 /* ────────────────────────────────────
-   Conversation placeholder
+   CONTEXT MENU STYLES
    ──────────────────────────────────── */
+.context-menu {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  z-index: 3000;
+  min-width: 140px;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  user-select: none;
+  transform: translate(-100%, -100%); /* Правый нижний угол — под курсором */
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 20px);
+}
+
+.context-menu-item {
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #333;
+}
+
+.context-menu-item:hover {
+  background: rgba(102, 126, 234, 0.1);
+}
+
+.context-menu-item.delete {
+  color: #f5576c;
+}
+
+.context-menu-item.delete:hover {
+  background: rgba(245, 87, 108, 0.1);
+}
+
+/* ────────────────────────────────────
+   SCROLLBAR: auto-hide, no layout shift
+   ──────────────────────────────────── */
+.messages-container {
+  flex: 1;
+  padding: 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background:
+      radial-gradient(circle at 15% 75%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 85% 25%, rgba(240, 147, 251, 0.08) 0%, transparent 50%);
+  scrollbar-width: thin;
+  -ms-overflow-style: -ms-autohiding-scrollbar;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea, #f093fb);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.messages-container.scrollbar-visible::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
+.messages-container:not(.scrollbar-visible) {
+  scrollbar-color: transparent transparent;
+}
+
+.messages-container.scrollbar-visible {
+  scrollbar-color: #667eea rgba(102, 126, 234, 0.08);
+}
+
+.messages-container.scroll-locked {
+  overflow: hidden;
+}
+
 .conversation-placeholder {
   width: 100%;
   height: 100vh;
@@ -323,9 +500,6 @@ const scrollToBottom = () => {
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* ────────────────────────────────────
-   Active conversation interface
-   ──────────────────────────────────── */
 .conversation-interface {
   background: linear-gradient(135deg, #f8faff 0%, #fef7ed 100%);
   width: 100%;
@@ -393,19 +567,6 @@ const scrollToBottom = () => {
   cursor: pointer;
 }
 
-/* Messages */
-.messages-container {
-  flex: 1;
-  padding: 28px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  background:
-      radial-gradient(circle at 15% 75%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 85% 25%, rgba(240, 147, 251, 0.08) 0%, transparent 50%);
-}
-
 .message-container {
   display: flex;
   width: 100%;
@@ -423,6 +584,7 @@ const scrollToBottom = () => {
 
 .message-bubble {
   max-width: 65%;
+  min-width: 50px;
   padding: 18px 22px;
   border-radius: 22px;
   position: relative;
@@ -430,6 +592,7 @@ const scrollToBottom = () => {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   transition: all 0.3s ease;
   backdrop-filter: blur(8px);
+  overflow: visible;
 }
 
 .message-bubble:hover {
@@ -496,7 +659,6 @@ const scrollToBottom = () => {
   color: rgba(255, 255, 255, 0.95);
 }
 
-/* Composer */
 .message-composer {
   display: flex;
   padding: 24px 28px;
@@ -549,26 +711,6 @@ const scrollToBottom = () => {
   background: linear-gradient(135deg, #f093fb, #667eea);
 }
 
-/* Scrollbar */
-.messages-container::-webkit-scrollbar {
-  width: 8px;
-}
-
-.messages-container::-webkit-scrollbar-track {
-  background: rgba(102, 126, 234, 0.08);
-  border-radius: 4px;
-}
-
-.messages-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea, #f093fb);
-  border-radius: 4px;
-}
-
-.messages-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #f093fb, #667eea);
-}
-
-/* Animations */
 .message-bubble {
   animation: bubble-appear 0.4s ease-out;
 }
@@ -584,7 +726,6 @@ const scrollToBottom = () => {
   }
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .conversation-interface {
     border-radius: 0;
@@ -625,7 +766,6 @@ const scrollToBottom = () => {
   }
 }
 
-/* Profile Modal */
 .profile-overlay {
   position: fixed;
   top: 0;
@@ -757,6 +897,69 @@ const scrollToBottom = () => {
 
   .profile-header h2 {
     font-size: 22px;
+  }
+}
+
+.message-meta-wrapper {
+  position: relative;
+  display: flex;
+  margin-top: 8px;
+}
+
+.message-bubble.incoming .message-meta-wrapper {
+  justify-content: flex-end;
+}
+
+.message-bubble.outgoing .message-meta-wrapper {
+  justify-content: flex-start;
+}
+
+.message-meta {
+  position: relative;
+  display: inline-block;
+  font-size: 12px;
+  opacity: 0.9;
+  font-weight: 600;
+  cursor: default;
+  user-select: none;
+}
+
+.message-bubble.incoming .message-meta {
+  color: #667eea;
+}
+
+.message-bubble.outgoing .message-meta {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.custom-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: rgba(25, 25, 35, 0.94);
+  color: #e0e0ff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.25),
+      0 0 0 1px rgba(102, 126, 234, 0.3);
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  animation: tooltip-fade-in 0.18s ease-out forwards;
+  white-space: nowrap;
+  max-width: 200px;
+  text-align: center;
+}
+
+@keyframes tooltip-fade-in {
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(8px);
   }
 }
 </style>
