@@ -13,6 +13,7 @@ import java.util.List;
 @Table(name = "chats")
 @Getter
 @Setter
+@NoArgsConstructor
 public class Chat {
 
     @Id
@@ -36,9 +37,7 @@ public class Chat {
     private List<ChatParticipant> participants = new ArrayList<>();
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ChatMessage> messages = new ArrayList<>();
-
-    protected Chat() {}
+    private List<Message> messages = new ArrayList<>();
 
     public Chat(ChatType type, String title) {
         this.type = type;
@@ -55,36 +54,5 @@ public class Chat {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-    }
-
-    @Entity
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @Table(name = "chat_messages")
-    public static class ChatMessage {
-
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
-
-        @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "chat_id", nullable = false)
-        private Chat chat;
-
-        @Column(name = "sender_id", nullable = false)
-        private String senderId;
-
-        @Column(name = "content", nullable = false, columnDefinition = "TEXT")
-        private String content;
-
-        @Column(name = "sent_at", nullable = false)
-        private LocalDateTime sentAt = LocalDateTime.now();
-
-        public ChatMessage(Chat chat, String senderId, String content) {
-            this.chat = chat;
-            this.senderId = senderId;
-            this.content = content;
-        }
     }
 }

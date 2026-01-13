@@ -25,4 +25,6 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
           AND cp.leftAt IS NULL
     """)
     List<ParticipantInfo> findActiveParticipantsWithNicknamesByChatId(@Param("chatId") Long chatId);
+
+    ChatParticipant findChatParticipantByChatIdAndUserId(Long chatId, Long userId);
 }

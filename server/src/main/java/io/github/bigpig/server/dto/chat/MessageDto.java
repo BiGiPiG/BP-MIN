@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 public record MessageDto(
         Long id,                       // message ID
         Long chatId,                   // chat ID
-        String senderId,               // sender ID
+        Long senderId,                 // sender ID
         String content,                // message content
 
         @JsonFormat(pattern = "HH:mm")

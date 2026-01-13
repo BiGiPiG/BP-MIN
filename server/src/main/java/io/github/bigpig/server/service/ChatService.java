@@ -3,11 +3,14 @@ package io.github.bigpig.server.service;
 import io.github.bigpig.server.dto.chat.ChatDto;
 import io.github.bigpig.server.dto.chat.CreateChatRequestDto;
 import io.github.bigpig.server.dto.chat.ParticipantInfo;
+import io.github.bigpig.server.entity.chat.Message;
 import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.entity.chat.Chat;
 import io.github.bigpig.server.entity.chat.ChatParticipant;
 import io.github.bigpig.server.entity.chat.ChatType;
 import io.github.bigpig.server.event.ChatCreatedEvent;
+import io.github.bigpig.server.exceptions.AppException;
+import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.repository.ChatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -38,7 +41,8 @@ public class ChatService {
     public Chat createChat(CreateChatRequestDto requestDto) {
         Chat chat = new Chat(requestDto.type(), requestDto.title());
         for (String username : requestDto.participants()) {
-            User participant = userService.findByUsername(username).get();
+            User participant = userService.findByUsername(username)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
             ChatParticipant chatParticipant = new ChatParticipant(chat, participant);
             chat.addParticipant(chatParticipant);
         }
@@ -51,8 +55,8 @@ public class ChatService {
         List<ParticipantInfo> participantInfos = chatParticipantService
                 .findActiveParticipantsWithNicknamesByChatId(chat.getId());
 
-        Chat.ChatMessage lastMessage = chat.getMessages().stream()
-                .max(Comparator.comparing(Chat.ChatMessage::getSentAt))
+        Message lastMessage = chat.getMessages().stream()
+                .max(Comparator.comparing(Message::getSentAt))
                 .orElse(null);
 
         String lastMessagePreview = (lastMessage != null) ? lastMessage.getContent() : null;

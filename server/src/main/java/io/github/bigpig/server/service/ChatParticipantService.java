@@ -1,6 +1,7 @@
 package io.github.bigpig.server.service;
 
 import io.github.bigpig.server.dto.chat.ParticipantInfo;
+import io.github.bigpig.server.entity.chat.ChatParticipant;
 import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.entity.chat.Chat;
 import io.github.bigpig.server.repository.ChatParticipantRepository;
@@ -17,6 +18,10 @@ public class ChatParticipantService {
 
     public List<Chat> findChatsByUser(User user) {
         return chatParticipantRepository.findChatsByUsername(user.getUsername());
+    }
+
+    public ChatParticipant findChatParticipantByChatIdAndUserId(Long chatId, Long userId) {
+        return chatParticipantRepository.findChatParticipantByChatIdAndUserId(chatId, userId);
     }
 
     public List<ParticipantInfo> findActiveParticipantsWithNicknamesByChatId(Long chatId) {
