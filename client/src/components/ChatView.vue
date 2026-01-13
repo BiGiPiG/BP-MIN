@@ -229,10 +229,7 @@ const floatingElements = ref([])
         @contextmenu="preventDefaultContextMenu"
         @scroll="showScrollbar"
         @mouseenter="showScrollbar"
-        @mouseleave="() => {
-          if (scrollActivityTimeout) clearTimeout(scrollActivityTimeout)
-          scrollActivityTimeout = setTimeout(() => { isScrollbarVisible.value = false }, 500)
-        }"
+        @mouseleave="showScrollbar"
     >
       <div
           v-for="message in conversationHistory"
