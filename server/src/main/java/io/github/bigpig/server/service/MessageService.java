@@ -1,6 +1,6 @@
 package io.github.bigpig.server.service;
 
-import io.github.bigpig.server.dto.chat.MessageDto;
+import io.github.bigpig.server.dto.message.MessageDto;
 import io.github.bigpig.server.entity.chat.Chat;
 import io.github.bigpig.server.entity.chat.ChatParticipant;
 import io.github.bigpig.server.entity.chat.Message;

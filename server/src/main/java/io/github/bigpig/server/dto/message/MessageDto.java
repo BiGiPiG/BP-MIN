@@ -1,4 +1,4 @@
-package io.github.bigpig.server.dto.chat;
+package io.github.bigpig.server.dto.message;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 

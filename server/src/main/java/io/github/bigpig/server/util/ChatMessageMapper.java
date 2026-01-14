@@ -1,6 +1,6 @@
 package io.github.bigpig.server.util;
 
-import io.github.bigpig.server.dto.chat.MessageDto;
+import io.github.bigpig.server.dto.message.MessageDto;
 import io.github.bigpig.server.entity.chat.Message;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;

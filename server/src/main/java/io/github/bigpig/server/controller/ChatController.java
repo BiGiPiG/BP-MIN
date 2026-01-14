@@ -2,7 +2,7 @@ package io.github.bigpig.server.controller;
 
 import io.github.bigpig.server.dto.chat.ChatDto;
 import io.github.bigpig.server.dto.chat.CreateChatRequestDto;
-import io.github.bigpig.server.dto.chat.MessageDto;
+import io.github.bigpig.server.dto.message.MessageDto;
 import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.service.ChatService;
 import io.github.bigpig.server.service.MessageService;
