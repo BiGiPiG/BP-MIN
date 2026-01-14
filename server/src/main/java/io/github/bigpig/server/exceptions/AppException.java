@@ -1,15 +1,15 @@
 package io.github.bigpig.server.exceptions;
 
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 
 @Getter
 public class AppException extends RuntimeException {
-    private final HttpStatus status;
+    private final HttpStatusCode status;
     private final String errorCode;
 
-    public AppException(String message, HttpStatus status, String errorCode) {
+    public AppException(String message, HttpStatusCode status, String errorCode) {
         super(message);
         this.status = status;
         this.errorCode = errorCode;
