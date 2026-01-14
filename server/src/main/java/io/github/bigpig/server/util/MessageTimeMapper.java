@@ -16,6 +16,6 @@ public class MessageTimeMapper {
         String month = localDateTime.getMonth().toString();
         month = month.charAt(0) + month.substring(1).toLowerCase();
 
-        return String.format("%d:%d, %s %d, %d", hour, minute, month, day, year);
+        return String.format("%02d:%02d, %s %d, %d", hour, minute, month, day, year);
     }
 }
