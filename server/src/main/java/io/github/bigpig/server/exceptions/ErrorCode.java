@@ -2,17 +2,21 @@ package io.github.bigpig.server.exceptions;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
-    USERNAME_ALREADY_EXISTS("USERNAME_ALREADY_EXISTS", "This username is already taken", HttpStatus.CONFLICT),
-    EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS", "This email is already used", HttpStatus.CONFLICT),
-    USER_NOT_FOUND("USER_NOT_FOUND", "User is not found by this id", HttpStatus.NOT_FOUND),
-    CHAT_NOT_FOUND("CHAT_NOT_FOUND", "Chat is not found by this message", HttpStatus.NOT_FOUND);
+    USERNAME_ALREADY_EXISTS("USERNAME_ALREADY_EXISTS", "This username is already taken", HttpStatusCode.valueOf(409)),
+    EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS", "This email is already used", HttpStatusCode.valueOf(409)),
+    USER_NOT_FOUND("USER_NOT_FOUND", "User is not found by this id", HttpStatusCode.valueOf(404)),
+    CHAT_NOT_FOUND("CHAT_NOT_FOUND", "Chat is not found by this message", HttpStatusCode.valueOf(404)),
+    MESSAGE_NOT_FOUND("MESSAGE_NOT_FOUND", "Message is not found by this id", HttpStatusCode.valueOf(404)),
+    CANNOT_EDIT_MESSAGE("CANNOT_EDIT_MESSAGE", "It is denied to edit this message", HttpStatusCode.valueOf(404)),
+    CANNOT_DELETE_MESSAGE("CANNOT_DELETE_MESSAGE", "It is denied to delete this message", HttpStatusCode.valueOf(404));
+
 
     private final String code;
     private final String message;
-    private final HttpStatus status;
+    private final HttpStatusCode status;
 }
