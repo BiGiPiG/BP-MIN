@@ -37,6 +37,10 @@ public class ChatService {
         return user.map(chatParticipantService::findChatsByUser).orElse(null);
     }
 
+    public Chat findChatById(Long id) {
+        return chatRepository.findById(id).orElse(null);
+    }
+
     @Transactional
     public Chat createChat(CreateChatRequestDto requestDto) {
         Chat chat = new Chat(requestDto.type(), requestDto.title());

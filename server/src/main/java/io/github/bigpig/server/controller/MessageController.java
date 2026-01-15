@@ -26,7 +26,7 @@ public class MessageController {
         log.info("Edit message request received for message with id {}", messageId);
 
         Long currentUserId = getCurrentUserId();
-        MessageDto editedMessage = messageService.updateMessage(messageId, currentUserId, editMessage);
+        MessageDto editedMessage = messageService.editMessage(messageId, currentUserId, editMessage);
 
         return ResponseEntity.ok(editedMessage);
     }

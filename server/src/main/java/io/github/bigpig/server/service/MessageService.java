@@ -34,7 +34,7 @@ public class MessageService {
     }
 
     @Transactional
-    public MessageDto updateMessage(Long messageId, Long editorId, EditMessageDto editMessage) {
+    public MessageDto editMessage(Long messageId, Long editorId, EditMessageDto editMessage) {
         Message message = messageRepository.findById(messageId).orElseThrow(
                 () -> new AppException(ErrorCode.MESSAGE_NOT_FOUND)
         );
