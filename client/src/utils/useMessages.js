@@ -22,6 +22,22 @@ export const useMessageStore = defineStore('messages', {
             this.messagesByChat[chatId].push(message)
         },
 
+        removeMessage(chatId, messageId) {
+            if (!this.messagesByChat[chatId]) return
+            this.messagesByChat[chatId] = this.messagesByChat[chatId].filter(
+                (msg) => msg.id !== messageId
+            )
+        },
+
+        updateMessage(chatId, messageId, newContent) {
+            if (!this.messagesByChat[chatId]) return
+            const message = this.messagesByChat[chatId].find((msg) => msg.id === messageId)
+            if (message) {
+                message.content = newContent
+                message.edited = true
+            }
+        },
+
         clear() {
             this.messagesByChat = {}
         }

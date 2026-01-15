@@ -4,12 +4,12 @@ import {computed, onMounted, onUnmounted, ref} from 'vue'
 import { useRouter } from 'vue-router'
 
 import ChatList from '@/components/ChatList.vue'
-import ChatView from '@/components/ChatView.vue'
 import SearchBar from '@/components/SearchBar.vue'
 
 import { useChats } from '@/utils/useChats.js'
 import { useStomp } from '@/utils/useStomp.js'
 import { useMessageStore } from '@/utils/useMessages.js'
+import ConversationView from "@/components/conversation/ConversationView.vue";
 
 // ─────────────────────────────────────
 // Setup
@@ -20,6 +20,7 @@ const router = useRouter()
 // Reactive state
 const activeChatName = ref('')
 const activeChat = ref(null)
+const activeChatSubscriptions = ref([])
 
 // Composable
 const { chats, loading, error, fetchChats, createChat } = useChats()
@@ -105,11 +106,30 @@ onUnmounted(() => {
 // ─────────────────────────────────────
 
 const handleChatSelected = (chat, chatName) => {
+  activeChatSubscriptions.value.forEach(unsub => unsub())
+  activeChatSubscriptions.value = []
+
   activeChatName.value = chatName
   activeChat.value = chat
+
+  if (!chat?.id) return
+
+  const chatId = chat.id
+
+  activeChatSubscriptions.value.push(
+      subscribe(`/topic/chat/${chatId}/edited`, (payload) => {
+        messageStore.updateMessage(chatId, payload.messageId, payload.newContent)
+      }),
+      subscribe(`/topic/chat/${chatId}/deleted`, (payload) => {
+        messageStore.removeMessage(chatId, payload.messageId)
+      })
+  )
 }
 
 const handleReturnToList = () => {
+  activeChatSubscriptions.value.forEach(unsub => unsub())
+  activeChatSubscriptions.value = []
+
   activeChatName.value = ''
   activeChat.value = null
 }
@@ -157,6 +177,26 @@ const sendMessage = async (content) => {
 
   send('/bp-min/chat.sendMessage', messagePayload)
 }
+
+const handleEditMessage = ({ id, content }) => {
+  send('/bp-min/chat.editMessage', {
+    messageId: id,
+    chatId: activeChat.value.id,
+    newContent: content
+  })
+}
+
+const handleDeleteMessage = (messageId) => {
+  if (!activeChat.value?.id) return
+
+  const payload = {
+    messageId: messageId,
+    chatId: activeChat.value.id
+  }
+
+  send('/bp-min/chat.deleteMessage', payload)
+}
+
 </script>
 
 <template>
@@ -184,11 +224,13 @@ const sendMessage = async (content) => {
   </div>
 
   <main>
-    <ChatView
+    <ConversationView
         :current-conversation-name="activeChatName"
         :current-conversation="activeChat"
         @return-to-list="handleReturnToList"
         @send-message="sendMessage"
+        @delete-message="handleDeleteMessage"
+        @edit-message="handleEditMessage"
     />
   </main>
 
