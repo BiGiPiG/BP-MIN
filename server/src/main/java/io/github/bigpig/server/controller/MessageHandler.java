@@ -22,7 +22,7 @@ public class MessageHandler {
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload MessageDto message) {
         log.info("Message received: {}", message);
-        MessageDto savedMessage = messageService.save(message);
+        MessageDto savedMessage = messageService.createMessage(message);
         messagingTemplate.convertAndSend("/topic/chat/" + message.chatId(), savedMessage);
     }
 

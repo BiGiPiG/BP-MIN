@@ -62,7 +62,7 @@ public class MessageService {
         messageRepository.deleteById(messageId);
     }
 
-    public MessageDto save(MessageDto messageDto) {
+    public MessageDto createMessage(MessageDto messageDto) {
         Chat chat = chatRepository.findById(messageDto.chatId())
                 .orElseThrow(() -> new AppException(ErrorCode.CHAT_NOT_FOUND));
 
