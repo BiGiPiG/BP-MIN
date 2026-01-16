@@ -13,7 +13,8 @@ public enum ErrorCode {
     CHAT_NOT_FOUND("CHAT_NOT_FOUND", "Chat is not found by this message", HttpStatusCode.valueOf(404)),
     MESSAGE_NOT_FOUND("MESSAGE_NOT_FOUND", "Message is not found by this id", HttpStatusCode.valueOf(404)),
     CANNOT_EDIT_MESSAGE("CANNOT_EDIT_MESSAGE", "It is denied to edit this message", HttpStatusCode.valueOf(404)),
-    CANNOT_DELETE_MESSAGE("CANNOT_DELETE_MESSAGE", "It is denied to delete this message", HttpStatusCode.valueOf(404));
+    CANNOT_DELETE_MESSAGE("CANNOT_DELETE_MESSAGE", "It is denied to delete this message", HttpStatusCode.valueOf(404)),
+    UNAUTHORIZED("USER_UNAUTHORISED", "This user is unauthorized", HttpStatusCode.valueOf(401));
 
 
     private final String code;

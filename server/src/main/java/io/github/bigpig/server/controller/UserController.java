@@ -4,6 +4,7 @@ import io.github.bigpig.server.dto.UserDto;
 import io.github.bigpig.server.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,8 +18,8 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/search")
-    public List<UserDto> searchUsers(@RequestParam String searchTerm) {
+    public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String searchTerm) {
         log.info("Searching for users with term: {}", searchTerm);
-        return userService.searchByUsername(searchTerm).stream().map(UserDto::from).toList();
+        return ResponseEntity.ok(userService.searchByUsername(searchTerm).stream().map(UserDto::from).toList());
     }
 }

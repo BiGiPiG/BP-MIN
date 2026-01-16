@@ -9,8 +9,6 @@ import io.github.bigpig.server.exceptions.AuthException;
 import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.repository.TokenRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -76,20 +74,20 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public ResponseEntity<AuthenticationResponseDto> refreshToken(String refreshToken) {
+    public AuthenticationResponseDto refreshToken(String refreshToken) {
 
         String username = jwtService.extractUsername(refreshToken);
         User user = userService.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("No user found"));
 
-        if (jwtService.isValidRefresh(refreshToken, user) && tokenRepository.findByRefreshToken(refreshToken).isPresent()) {
-            String newAccessToken = jwtService.generateAccessToken(user);
-            String newRefreshToken = jwtService.generateRefreshToken(user);
-            deleteRefreshToken(user);
-            saveRefreshToken(newRefreshToken, user);
-            return ResponseEntity.ok(new AuthenticationResponseDto(newAccessToken, newRefreshToken));
+        if (!jwtService.isValidRefresh(refreshToken, user) || tokenRepository.findByRefreshToken(refreshToken).isEmpty()) {
+            throw new AuthException(ErrorCode.UNAUTHORIZED);
         }
 
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String newAccessToken = jwtService.generateAccessToken(user);
+        String newRefreshToken = jwtService.generateRefreshToken(user);
+        deleteRefreshToken(user);
+        saveRefreshToken(newRefreshToken, user);
+        return new AuthenticationResponseDto(newAccessToken, newRefreshToken);
     }
 }

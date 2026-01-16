@@ -8,7 +8,6 @@ import io.github.bigpig.server.service.ChatService;
 import io.github.bigpig.server.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,20 +25,19 @@ public class ChatController {
 
     @GetMapping
     public ResponseEntity<List<ChatDto>> getChats(@AuthenticationPrincipal User userDetails) {
-        return new ResponseEntity<>(
-                chatService.findChatsByUser(userDetails).stream().map(chatService::getChatDto).toList(),
-                HttpStatus.OK);
+        return ResponseEntity.ok(chatService.findChatsByUser(userDetails)
+                .stream().map(chatService::getChatDto).toList());
     }
 
     @PostMapping("/create")
     public ResponseEntity<ChatDto> createChat(@RequestBody CreateChatRequestDto requestDto) {
         log.info("Create chat: {}", requestDto);
         ChatDto newChatDto = chatService.getChatDto(chatService.createChat(requestDto));
-        return new ResponseEntity<>(newChatDto, HttpStatus.CREATED);
+        return ResponseEntity.ok(newChatDto);
     }
 
     @GetMapping("/history/{chatId}")
     public ResponseEntity<List<MessageDto>> getHistory(@PathVariable Long chatId) {
-        return new ResponseEntity<>(messageService.getHistory(chatId), HttpStatus.OK);
+        return ResponseEntity.ok(messageService.getHistory(chatId));
     }
 }

@@ -40,6 +40,6 @@ public class AuthenticationController {
     @PostMapping("/refresh_token")
     public ResponseEntity<AuthenticationResponseDto> refreshToken(@RequestBody RefreshTokenRequest refreshToken) {
         log.info("Refresh token request received");
-        return authenticationService.refreshToken(refreshToken.refreshToken());
+        return ResponseEntity.ok(authenticationService.refreshToken(refreshToken.refreshToken()));
     }
 }
