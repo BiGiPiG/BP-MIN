@@ -5,7 +5,6 @@ import io.github.bigpig.server.entity.user.Profile;
 import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.exceptions.AppException;
 import io.github.bigpig.server.exceptions.ErrorCode;
-import io.github.bigpig.server.repository.ProfileRepository;
 import io.github.bigpig.server.util.ProfileMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +15,6 @@ public class ProfileService {
 
     private final UserService userService;
     private final ProfileMapper profileMapper;
-    private final ProfileRepository profileRepository;
 
     public ProfileDto getProfileByUsername(String username) {
         User user = userService.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
