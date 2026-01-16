@@ -3,7 +3,6 @@ package io.github.bigpig.server.service;
 import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,12 +13,6 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-
-    @Override
-    public User loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User - " + username + " not found"));
-    }
 
     @Override
     public boolean existsByUsername(String username) {

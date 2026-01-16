@@ -1,7 +1,9 @@
 package io.github.bigpig.server.websocket;
 
+import io.github.bigpig.server.exceptions.AuthException;
+import io.github.bigpig.server.exceptions.ErrorCode;
+import io.github.bigpig.server.service.CustomUserDetailsService;
 import io.github.bigpig.server.service.JwtService;
-import io.github.bigpig.server.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.messaging.Message;
@@ -20,7 +22,7 @@ import java.security.Principal;
 public class AuthChannelInterceptor implements ChannelInterceptor {
 
     private final JwtService jwtService;
-    private final UserService userService;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -31,12 +33,12 @@ public class AuthChannelInterceptor implements ChannelInterceptor {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 String username = jwtService.extractUsername(token);
-                UserDetails userDetails = userService.loadUserByUsername(username);
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
                 if (jwtService.isValid(token, userDetails)) {
                     accessor.setUser((Principal) userDetails);
                 } else {
-                    throw new RuntimeException("Token is invalid");
+                    throw new AuthException(ErrorCode.JWT_INVALID);
                 }
             }
         }
