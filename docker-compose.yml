@@ -11,6 +11,19 @@ services:
     ports:
       - "5435:5432"
     container_name: bp-min-db
+    networks:
+      - bp-min
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    container_name: bp-min-redis
+    networks:
+      - bp-min
+    volumes:
+       - ./redis-data:/data
 
   client:
     build: ./client
@@ -19,6 +32,10 @@ services:
     container_name: bp-min-client
     networks:
       - bp-min
+    depends_on:
+       - redis
+       - pg_db
 
 networks:
   bp-min:
+    driver: bridge
