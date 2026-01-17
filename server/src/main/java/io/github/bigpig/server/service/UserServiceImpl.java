@@ -15,16 +15,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public boolean existsByUsername(String username) {
-        return userRepository.findByUsername(username).orElse(null) != null;
-    }
-
-    @Override
-    public boolean existsByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null) != null;
-    }
-
-    @Override
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
     }

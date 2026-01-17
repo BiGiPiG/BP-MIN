@@ -18,4 +18,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User - " + username + " not found"));
     }
+
+    public boolean existsByUsername(String username) {
+        return userRepository.findByUsername(username).orElse(null) != null;
+    }
+
+    public boolean existsByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null) != null;
+    }
+
 }

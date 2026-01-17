@@ -1,6 +1,6 @@
 package io.github.bigpig.server.security;
 
-import io.github.bigpig.server.service.UserService;
+import io.github.bigpig.server.service.CustomUserDetailsService;
 import io.github.bigpig.server.util.CorsProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +29,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
-    private final UserService userService;
+    private final CustomUserDetailsService customUserDetailsService;
     private final CustomAccessDeniedHandler accessDeniedHandler;
     private final CustomLogoutHandler customLogoutHandler;
     private final CorsProperties corsProperties;
@@ -45,7 +45,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .anyRequest().authenticated()
                 )
-                .userDetailsService(userService)
+                .userDetailsService(customUserDetailsService)
                 .exceptionHandling(e -> {
                     e.accessDeniedHandler(accessDeniedHandler);
                     e.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED));

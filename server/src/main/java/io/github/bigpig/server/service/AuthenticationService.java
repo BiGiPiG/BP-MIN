@@ -11,7 +11,6 @@ import io.github.bigpig.server.repository.TokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import io.github.bigpig.server.dto.auth.RegistrationRequestDto;
@@ -26,14 +25,15 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final TokenRepository tokenRepository;
+    private final CustomUserDetailsService customUserDetailsService;
     private final UserService userService;
 
     public void signup(RegistrationRequestDto request) {
-        if (userService.existsByUsername(request.username())) {
+        if (customUserDetailsService.existsByUsername(request.username())) {
             throw new AuthException(ErrorCode.USERNAME_ALREADY_EXISTS);
         }
 
-        if (userService.existsByEmail(request.email())) {
+        if (customUserDetailsService.existsByEmail(request.email())) {
             throw new AuthException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -77,8 +77,7 @@ public class AuthenticationService {
     public AuthenticationResponseDto refreshToken(String refreshToken) {
 
         String username = jwtService.extractUsername(refreshToken);
-        User user = userService.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("No user found"));
+        User user = customUserDetailsService.loadUserByUsername(username);
 
         if (!jwtService.isValidRefresh(refreshToken, user) || tokenRepository.findByRefreshToken(refreshToken).isEmpty()) {
             throw new AuthException(ErrorCode.UNAUTHORIZED);
