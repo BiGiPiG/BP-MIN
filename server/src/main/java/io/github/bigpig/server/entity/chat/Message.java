@@ -32,10 +32,18 @@ public class Message {
     @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
 
+    @Column(name = "is_read")
+    private Boolean isRead;
+
     public Message(Chat chat, ChatParticipant chatParticipant, String content) {
         this.chat = chat;
         this.chatParticipant = chatParticipant;
         this.content = content;
         this.sentAt = LocalDateTime.now();
+        this.isRead = false;
+    }
+
+    public void read() {
+        this.isRead = true;
     }
 }

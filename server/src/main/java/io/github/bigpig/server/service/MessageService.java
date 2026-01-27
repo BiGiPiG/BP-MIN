@@ -9,14 +9,14 @@ import io.github.bigpig.server.exceptions.AppException;
 import io.github.bigpig.server.exceptions.ErrorCode;
 import io.github.bigpig.server.repository.ChatRepository;
 import io.github.bigpig.server.repository.MessageRepository;
-import io.github.bigpig.server.util.ChatMessageMapper;
-import io.github.bigpig.server.util.message.IMessageDeleteChecker;
-import io.github.bigpig.server.util.message.IMessageEditChecker;
+import io.github.bigpig.server.util.message.ChatMessageMapper;
+import io.github.bigpig.server.util.message.MessageChecker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -26,8 +26,7 @@ public class MessageService {
     private final ChatRepository chatRepository;
     private final ChatMessageMapper chatMessageMapper;
     private final ChatParticipantService chatParticipantService;
-    private final IMessageEditChecker messageEditChecker;
-    private final IMessageDeleteChecker messageDeleteChecker;
+    private final Map<String, MessageChecker> messageCheckers;
 
     public List<MessageDto> getHistory(Long chatId) {
         return messageRepository.findByChatId(chatId).stream().map(chatMessageMapper::toMessageDto).toList();
@@ -39,7 +38,7 @@ public class MessageService {
                 () -> new AppException(ErrorCode.MESSAGE_NOT_FOUND)
         );
 
-        if (!messageEditChecker.canEdit(editorId, message)) {
+        if (messageCheckers.get("messageEditChecker").checkErrors(editorId, message)) {
             throw new AppException(ErrorCode.CANNOT_EDIT_MESSAGE);
         }
 
@@ -50,12 +49,28 @@ public class MessageService {
     }
 
     @Transactional
+    public Long readMessage(Long messageId, Long editorId) {
+        Message message = messageRepository.findById(messageId).orElseThrow(
+                () -> new AppException(ErrorCode.MESSAGE_NOT_FOUND)
+        );
+
+        if (messageCheckers.get("messageReadChecker").checkErrors(editorId, message)) {
+            throw new AppException(ErrorCode.CANNOT_EDIT_MESSAGE);
+        }
+
+        message.read();
+
+        messageRepository.save(message);
+        return message.getChatParticipant().getUser().getId();
+    }
+
+    @Transactional
     public void deleteMessage(Long messageId, Long deleterId) {
         Message message = messageRepository.findById(messageId).orElseThrow(
                 () -> new AppException(ErrorCode.MESSAGE_NOT_FOUND)
         );
 
-        if (!messageDeleteChecker.canDelete(deleterId, message)) {
+        if (messageCheckers.get("messageDeleteChecker").checkErrors(deleterId, message)) {
             throw new AppException(ErrorCode.CANNOT_DELETE_MESSAGE);
         }
 

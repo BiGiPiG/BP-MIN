@@ -47,4 +47,15 @@ public class MessageHandler {
         EditedMessageDto editedMessageDto = new EditedMessageDto(editRequest.messageId(), newMessage.content());
         messagingTemplate.convertAndSend("/topic/chat/" + editRequest.chatId() + "/edited", editedMessageDto);
     }
+
+    @MessageMapping("/chat.readMessage")
+    public void readMessage(@Payload ReadMessageDto readRequest, @AuthenticationPrincipal User user) {
+        log.info("Read request for message ID: {}", readRequest.messageId());
+
+        Long currentUserId = user.getId();
+        Long senderId = messageService.readMessage(readRequest.messageId(), currentUserId);
+
+        messagingTemplate.convertAndSend("/topic/chat/" + readRequest.chatId() + "/read/" + senderId,
+                new ReadMessageResponse(readRequest.chatId(), readRequest.messageId()));
+    }
 }

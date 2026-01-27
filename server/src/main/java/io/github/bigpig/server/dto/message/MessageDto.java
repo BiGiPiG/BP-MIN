@@ -13,5 +13,6 @@ public record MessageDto(
         @JsonFormat(pattern = "HH:mm")
         LocalDateTime shortSentAt,     // send time
 
-        String fullSentAt              // send date with time
+        String fullSentAt,             // send date with time
+        Boolean isRead                 // is message read
 ) {}

@@ -1,7 +1,8 @@
-package io.github.bigpig.server.util;
+package io.github.bigpig.server.util.message;
 
 import io.github.bigpig.server.dto.message.MessageDto;
 import io.github.bigpig.server.entity.chat.Message;
+import io.github.bigpig.server.util.MessageTimeMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +19,8 @@ public class ChatMessageMapper {
                 message.getChatParticipant().getUser().getId(),
                 message.getContent(),
                 message.getSentAt(),
-                messageTimeMapper.fullTimeToString(message.getSentAt())
+                messageTimeMapper.fullTimeToString(message.getSentAt()),
+                message.getIsRead()
         );
     }
 }
