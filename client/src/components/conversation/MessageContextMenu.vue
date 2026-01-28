@@ -17,7 +17,7 @@ const props = defineProps({
   visible: { type: Boolean, required: true },
   x: { type: Number, required: true },
   y: { type: Number, required: true },
-  messageId: { type: [Number], required: true }
+  messageId: Number
 })
 
 const emit = defineEmits(['edit', 'delete', 'close'])

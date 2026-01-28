@@ -2,25 +2,29 @@
   <div
       ref="messagesContainer"
       class="messages-container"
-      :class="{ 'scroll-locked': isScrollLocked, 'scrollbar-visible': isScrollbarVisible }"
+      :class="{
+      'scroll-locked': isScrollbarLocked,
+      'scrollbar-visible': isScrollbarVisible
+    }"
       @contextmenu="preventDefaultContextMenu"
-      @scroll="onScroll"
-      @mouseenter="onScroll"
-      @mouseleave="onScroll"
+      @scroll="handleScrollActivity"
+      @mouseenter="handleScrollActivity"
+      @mouseleave="handleScrollActivity"
   >
     <div
         v-for="message in messages"
         :key="message.id"
         class="message-container"
+        :data-message-id="message.id"
     >
       <div
-          :class="{
-          'message-bubble outgoing': isOutgoing(message),
-          'message-bubble incoming': !isOutgoing(message)
-        }"
-          @contextmenu="(e) => onContextMenu(e, message)"
+          :class="[
+          'message-bubble',
+          isOutgoing(message) ? 'outgoing' : 'incoming'
+        ]"
+          @contextmenu="(e) => handleContextMenu(e, message)"
       >
-        <!-- Edit mode -->
+        <!-- Режим редактирования -->
         <div v-if="editingMessageId === message.id" class="edit-mode">
           <input
               v-model="editingContent"
@@ -35,22 +39,28 @@
           </div>
         </div>
 
-        <!-- View mode -->
+        <!-- Режим просмотра -->
         <template v-else>
           <div class="message-content">{{ message.content }}</div>
-          <div class="message-meta-wrapper">
-            <div
-                class="message-meta"
-                @mouseenter="() => showTooltip(message.id)"
+
+          <div class="message-meta">
+            <time
+                class="message-time"
+                :class="{ 'outgoing-time': isOutgoing(message) }"
+                @mouseenter="showTooltip(message.id)"
                 @mouseleave="hideTooltip"
             >
               {{ message.shortSentAt }}
-              <div
-                  v-if="hoveredMessageId === message.id"
-                  class="custom-tooltip"
-              >
+              <span v-if="hoveredMessageId === message.id" class="tooltip">
                 {{ message.fullSentAt }}
-              </div>
+              </span>
+            </time>
+
+            <div v-if="isOutgoing(message)" class="status-indicator">
+              <StatusIcon
+                  :status="getMessageStatus(message)"
+                  :is-outgoing="true"
+              />
             </div>
           </div>
         </template>
@@ -60,31 +70,43 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
+import StatusIcon from './StatusIcon.vue' // Вынесен в отдельный компонент
 
+// =============== ПРОПСЫ И ЭМИТЫ ===============
 const props = defineProps({
   messages: { type: Array, required: true },
   currentUserId: { type: Number, required: true },
-  isScrollLocked: { type: Boolean, default: false },
+  isScrollbarLocked: { type: Boolean, default: false }, // Исправлено: используется напрямую в шаблоне
   editingMessageId: { type: [String, Number, null], default: null }
 })
 
 const emit = defineEmits([
-  'contextmenu',
-  'scroll',
-  'edit-start',
-  'edit-save',
-  'edit-cancel'
+  'contextmenu', 'scroll', 'edit-save', 'edit-cancel', 'message-read'
 ])
 
-// State
+// =============== СОСТОЯНИЕ ===============
 const messagesContainer = ref(null)
 const hoveredMessageId = ref(null)
 const isScrollbarVisible = ref(true)
 const editingContent = ref('')
-let scrollActivityTimeout = null
+const messageElements = ref(new Map())
+const observer = ref(null)
+const readTimeouts = ref({})
+const readMessages = ref(new Set())
+let scrollTimeout = null
 
-// Sync editing content when message changes
+// =============== ВЫЧИСЛЯЕМЫЕ СВОЙСТВА ===============
+const isOutgoing = (message) =>
+    String(message.senderId) === String(props.currentUserId)
+
+const getMessageStatus = (message) => {
+  if (message.isRead) return 'read'
+  if (message.isSend) return 'delivered'
+  return 'sending'
+}
+
+// =============== НАБЛЮДАТЕЛИ ===============
 watch(() => props.editingMessageId, (id) => {
   if (id) {
     const msg = props.messages.find(m => m.id === id)
@@ -94,28 +116,96 @@ watch(() => props.editingMessageId, (id) => {
   }
 })
 
-const isOutgoing = (message) => String(message.senderId) === String(props.currentUserId)
+watch(() => props.messages, async () => {
+  await nextTick()
+  updateObservers()
+}, { deep: true })
 
-const showTooltip = (id) => hoveredMessageId.value = id
-const hideTooltip = () => hoveredMessageId.value = null
+// =============== ЖИЗНЕННЫЙ ЦИКЛ ===============
+onMounted(() => {
+  initIntersectionObserver()
+  updateObservers()
+})
 
-const preventDefaultContextMenu = (e) => e.preventDefault()
+onUnmounted(() => {
+  observer.value?.disconnect()
+  Object.values(readTimeouts.value).forEach(clearTimeout)
+})
 
-const onContextMenu = (e, message) => {
-  if (isOutgoing(message)) {
-    emit('contextmenu', e, message)
+// =============== МЕТОДЫ НАБЛЮДАТЕЛЯ ===============
+const initIntersectionObserver = () => {
+  observer.value = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const messageId = entry.target.dataset.messageId
+      if (!messageId) return
+
+      const message = props.messages.find(m => String(m.id) === messageId)
+      if (!message || isOutgoing(message)) return
+
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.85) {
+        scheduleReadConfirmation(messageId, message.chatId)
+      } else {
+        cancelReadConfirmation(messageId)
+      }
+    })
+  }, {
+    threshold: 0.85,
+    root: messagesContainer.value
+  })
+}
+
+const updateObservers = () => {
+  messageElements.value.forEach(el => observer.value?.unobserve(el))
+  messageElements.value.clear()
+
+  props.messages.forEach(message => {
+    const el = messagesContainer.value?.querySelector(`[data-message-id="${message.id}"]`)
+    if (el) {
+      messageElements.value.set(String(message.id), el)
+      observer.value?.observe(el)
+    }
+  })
+}
+
+// =============== ПОДТВЕРЖДЕНИЕ ПРОЧТЕНИЯ ===============
+const scheduleReadConfirmation = (messageId, chatId) => {
+  if (readMessages.value.has(messageId)) return
+  cancelReadConfirmation(messageId)
+
+  readTimeouts.value[messageId] = setTimeout(() => {
+    readMessages.value.add(messageId)
+    emit('message-read', { messageId, chatId })
+    delete readTimeouts.value[messageId]
+  }, 1200)
+}
+
+const cancelReadConfirmation = (messageId) => {
+  if (readTimeouts.value[messageId]) {
+    clearTimeout(readTimeouts.value[messageId])
+    delete readTimeouts.value[messageId]
   }
 }
 
-const onScroll = () => {
+// =============== ОБРАБОТЧИКИ СОБЫТИЙ ===============
+const handleScrollActivity = () => {
   isScrollbarVisible.value = true
-  if (scrollActivityTimeout) clearTimeout(scrollActivityTimeout)
-  scrollActivityTimeout = setTimeout(() => {
+  clearTimeout(scrollTimeout)
+  scrollTimeout = setTimeout(() => {
     isScrollbarVisible.value = false
   }, 1500)
   emit('scroll')
 }
 
+const handleContextMenu = (e, message) => {
+  if (isOutgoing(message)) emit('contextmenu', e, message)
+}
+
+const preventDefaultContextMenu = (e) => e.preventDefault()
+
+const showTooltip = (id) => hoveredMessageId.value = id
+const hideTooltip = () => hoveredMessageId.value = null
+
+// =============== РЕДАКТИРОВАНИЕ СООБЩЕНИЙ ===============
 const saveEdit = () => {
   const content = editingContent.value.trim()
   if (content && props.editingMessageId) {
@@ -123,10 +213,9 @@ const saveEdit = () => {
   }
 }
 
-const cancelEdit = () => {
-  emit('edit-cancel')
-}
+const cancelEdit = () => emit('edit-cancel')
 
+// =============== ЭКСПОРТ МЕТОДОВ ===============
 defineExpose({
   scrollToBottom: () => {
     nextTick(() => {
@@ -139,6 +228,7 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Контейнер сообщений */
 .messages-container {
   flex: 1;
   padding: 28px;
@@ -151,54 +241,33 @@ defineExpose({
       radial-gradient(circle at 85% 25%, rgba(240, 147, 251, 0.08) 0%, transparent 50%);
   scrollbar-width: thin;
   -ms-overflow-style: -ms-autohiding-scrollbar;
-}
-
-.messages-container::-webkit-scrollbar {
-  width: 8px;
-}
-
-.messages-container::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 4px;
-}
-
-.messages-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #667eea, #f093fb);
-  border-radius: 4px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.messages-container.scrollbar-visible::-webkit-scrollbar-thumb {
-  opacity: 1;
-}
-
-.messages-container:not(.scrollbar-visible) {
-  scrollbar-color: transparent transparent;
-}
-
-.messages-container.scrollbar-visible {
-  scrollbar-color: #667eea rgba(102, 126, 234, 0.08);
+  transition: overflow 0.3s ease;
 }
 
 .messages-container.scroll-locked {
   overflow: hidden;
 }
 
+/* Стили скроллбара */
+.messages-container::-webkit-scrollbar { width: 8px; }
+.messages-container::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+.messages-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea, #f093fb);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.messages-container.scrollbar-visible::-webkit-scrollbar-thumb { opacity: 1; }
+.messages-container:not(.scrollbar-visible) { scrollbar-color: transparent transparent; }
+.messages-container.scrollbar-visible { scrollbar-color: #667eea rgba(102, 126, 234, 0.08); }
+
+/* Сообщения */
 .message-container {
   display: flex;
   width: 100%;
 }
-
-.message-container .outgoing {
-  margin-left: auto;
-  justify-content: flex-end;
-}
-
-.message-container .incoming {
-  margin-right: auto;
-  justify-content: flex-start;
-}
+.message-container .outgoing { margin-left: auto; }
+.message-container .incoming { margin-right: auto; }
 
 .message-bubble {
   max-width: 65%;
@@ -208,24 +277,18 @@ defineExpose({
   position: relative;
   word-break: break-word;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-  transition: all 0.3s ease;
   backdrop-filter: blur(8px);
-  overflow: visible;
   animation: bubble-appear 0.4s ease-out;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
+.message-bubble:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18); }
 
-.message-bubble:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
-}
-
+/* Стили входящих/исходящих */
 .message-bubble.incoming {
   background: linear-gradient(135deg, #ffffff, #f8faff);
   border: 1px solid rgba(102, 126, 234, 0.15);
-  border-bottom-left-radius: 8px;
-  border-top-left-radius: 8px;
+  border-radius: 8px 22px 22px 8px;
 }
-
 .message-bubble.incoming::before {
   content: '';
   position: absolute;
@@ -240,11 +303,9 @@ defineExpose({
 .message-bubble.outgoing {
   background: linear-gradient(135deg, #667eea, #f093fb);
   color: white;
-  border-bottom-right-radius: 8px;
-  border-top-right-radius: 8px;
+  border-radius: 22px 8px 8px 22px;
   box-shadow: 0 6px 24px rgba(102, 126, 234, 0.35);
 }
-
 .message-bubble.outgoing::before {
   content: '';
   position: absolute;
@@ -256,105 +317,45 @@ defineExpose({
   border-radius: 0 6px 6px 0;
 }
 
-.message-content {
-  font-size: 16px;
-  line-height: 1.5;
-  margin-bottom: 6px;
-}
-
-.message-meta-wrapper {
-  position: relative;
+/* Метаданные сообщения */
+.message-meta {
   display: flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 8px;
-}
-
-.message-bubble.incoming .message-meta-wrapper {
   justify-content: flex-end;
 }
+.message-bubble.outgoing .message-meta { justify-content: flex-start; }
 
-.message-bubble.outgoing .message-meta-wrapper {
-  justify-content: flex-start;
-}
-
-.message-meta {
+.message-time {
   position: relative;
-  display: inline-block;
   font-size: 12px;
-  opacity: 0.9;
   font-weight: 600;
+  opacity: 0.9;
   cursor: default;
-  user-select: none;
+  white-space: nowrap;
 }
+.message-bubble.incoming .message-time { color: #667eea; }
+.message-bubble.outgoing .message-time { color: rgba(255, 255, 255, 0.95); }
 
-.message-bubble.incoming .message-meta {
-  color: #667eea;
-}
-
-.message-bubble.outgoing .message-meta {
-  color: rgba(255, 255, 255, 0.95);
-}
-
-.custom-tooltip {
+/* Tooltip времени */
+.tooltip {
   position: absolute;
-  top: 100%;
+  bottom: -24px;
   left: 50%;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateX(-50%);
   background: rgba(25, 25, 35, 0.94);
   color: #e0e0ff;
   font-size: 12px;
-  font-weight: 600;
-  padding: 6px 12px;
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-  box-shadow:
-      0 4px 12px rgba(0, 0, 0, 0.25),
-      0 0 0 1px rgba(102, 126, 234, 0.3);
-  z-index: 10;
-  pointer-events: none;
-  opacity: 0;
-  animation: tooltip-fade-in 0.18s ease-out forwards;
+  padding: 4px 10px;
+  border-radius: 6px;
   white-space: nowrap;
-  max-width: 200px;
-  text-align: center;
+  animation: tooltip-fade-in 0.18s ease-out forwards;
+  pointer-events: none;
 }
 
-@keyframes bubble-appear {
-  from {
-    opacity: 0;
-    transform: translateY(15px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes tooltip-fade-in {
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(8px);
-  }
-}
-
-@media (max-width: 768px) {
-  .messages-container {
-    padding: 20px 16px;
-    gap: 16px;
-  }
-
-  .message-bubble {
-    max-width: 80%;
-    padding: 16px 20px;
-  }
-}
-
-.edit-mode {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
+/* Режим редактирования */
+.edit-mode { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 .edit-input {
   padding: 10px 12px;
   border: 2px solid #667eea;
@@ -363,41 +364,35 @@ defineExpose({
   outline: none;
   background: white;
   color: #333;
-  min-width: 200px;
-  max-width: 100%;
 }
-
-.edit-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.edit-save,
-.edit-cancel {
+.edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.edit-save, .edit-cancel {
   padding: 6px 12px;
   border: none;
   border-radius: 8px;
   font-size: 14px;
-  cursor: pointer;
   font-weight: 600;
+  cursor: pointer;
+}
+.edit-save { background: #667eea; color: white; }
+.edit-cancel { background: #f0f0f0; color: #555; }
+.edit-save:hover { background: #5a6fd8; }
+.edit-cancel:hover { background: #e0e0e0; }
+
+/* Анимации */
+@keyframes bubble-appear {
+  from { opacity: 0; transform: translateY(15px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes tooltip-fade-in {
+  to { opacity: 1; transform: translateX(-50%) translateY(4px); }
 }
 
-.edit-save {
-  background: #667eea;
-  color: white;
-}
-
-.edit-cancel {
-  background: #f0f0f0;
-  color: #555;
-}
-
-.edit-save:hover {
-  background: #5a6fd8;
-}
-
-.edit-cancel:hover {
-  background: #e0e0e0;
+/* Адаптивность */
+@media (max-width: 768px) {
+  .messages-container { padding: 20px 16px; gap: 16px; }
+  .message-bubble { max-width: 80%; padding: 16px 20px; }
+  .message-time { font-size: 11px; }
+  .status-indicator { width: 16px; height: 16px; }
 }
 </style>

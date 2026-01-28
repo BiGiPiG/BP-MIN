@@ -16,7 +16,7 @@ const props = defineProps({
   currentConversation: [Object, null]
 })
 
-const emit = defineEmits(['return-to-list', 'send-message', 'delete-message', 'edit-message'])
+const emit = defineEmits(['return-to-list', 'send-message', 'delete-message', 'edit-message', `message-read`])
 
 // Reactive state
 const isProfileVisible = ref(false)
@@ -100,10 +100,13 @@ const hideContextMenu = () => {
 
 const handleDeleteMessage = () => {
   if (contextMenu.value.messageId) {
-    console.log(contextMenu.value.messageId)
     emit('delete-message', contextMenu.value.messageId)
   }
   hideContextMenu()
+}
+
+const handleMessageRead = ({ messageId, chatId }) => {
+  emit('message-read', { messageId, chatId })
 }
 
 const startEditing = (messageId) => {
@@ -149,6 +152,7 @@ onUnmounted(() => {
         @contextmenu="showContextMenu"
         @edit-save="handleEditSave"
         @edit-cancel="handleEditCancel"
+        @message-read="handleMessageRead"
     />
 
     <MessageComposer

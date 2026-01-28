@@ -38,6 +38,14 @@ export const useMessageStore = defineStore('messages', {
             }
         },
 
+        readMessage(chatId, messageId) {
+            if (!this.messagesByChat[chatId]) return
+            const message = this.messagesByChat[chatId].find((msg) => msg.id === messageId)
+            if (message) {
+                message.isRead = true
+            }
+        },
+
         clear() {
             this.messagesByChat = {}
         }

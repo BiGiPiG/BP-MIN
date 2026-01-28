@@ -50,6 +50,7 @@ const redirectToLogin = () => {
 
 const handleMessage = (message) => {
   const parsedMessage = typeof message === 'string' ? JSON.parse(message) : message
+  parsedMessage.isSend = true
   messageStore.addMessage(parsedMessage.chatId, parsedMessage)
 }
 
@@ -105,7 +106,19 @@ onUnmounted(() => {
 // Event handlers
 // ─────────────────────────────────────
 
+const handleMessageRead = async ({ messageId, chatId }) => {
+  try {
+    send('/bp-min/chat.readMessage', {
+      messageId: messageId,
+      chatId: chatId
+    })
+  } catch (error) {
+    console.error('Failed to mark message as read:', error)
+  }
+}
+
 const handleChatSelected = (chat, chatName) => {
+  const userId = localStorage.getItem('userId')
   activeChatSubscriptions.value.forEach(unsub => unsub())
   activeChatSubscriptions.value = []
 
@@ -122,6 +135,12 @@ const handleChatSelected = (chat, chatName) => {
       }),
       subscribe(`/topic/chat/${chatId}/deleted`, (payload) => {
         messageStore.removeMessage(chatId, payload.messageId)
+      }),
+      subscribe(`/topic/chat/${chatId}/read/${userId}`, (payload) => {
+        messageStore.readMessage(
+            chatId,
+            payload.messageId,
+        )
       })
   )
 }
@@ -231,6 +250,7 @@ const handleDeleteMessage = (messageId) => {
         @send-message="sendMessage"
         @delete-message="handleDeleteMessage"
         @edit-message="handleEditMessage"
+        @message-read="handleMessageRead"
     />
   </main>
 
@@ -254,7 +274,7 @@ main {
 }
 
 /* ────────────────────────────────────
-   Global layout styles (applied via :global)
+   Global layout styles
    ──────────────────────────────────── */
 :global(html),
 :global(body) {
@@ -294,28 +314,6 @@ main {
   top: 0;
   background: white;
   z-index: 20;
-}
-
-.searchBar input,
-.searchBar .search-input {
-  width: 100%;
-  padding: 12px 16px 12px 40px;
-  border: 2px solid #e8e8e8;
-  border-radius: 16px;
-  font-size: 15px;
-  outline: none;
-  background: #f8f9fa;
-  color: #333;
-  font-weight: 500;
-  box-sizing: border-box;
-  transition: all 0.25s ease;
-}
-
-.searchBar input:focus,
-.searchBar .search-input:focus {
-  border-color: #7e4aff;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(126, 74, 255, 0.15);
 }
 
 /* ────────────────────────────────────

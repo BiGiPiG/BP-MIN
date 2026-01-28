@@ -88,14 +88,10 @@ export function useStomp() {
         }
 
         const subscription = client.value.subscribe(destination, (message) => {
-            console.log(`📥 [${destination}] RAW message.body:`, message.body);
-            console.log(`   typeof body:`, typeof message.body);
-
             try {
                 const body = typeof message.body === 'string'
                     ? JSON.parse(message.body)
                     : message.body;
-                console.log(`📦 [${destination}] Parsed:`, body);
                 callback(body);
             } catch (e) {
                 console.error(`❌ [${destination}] Failed to parse:`, message.body, e);
