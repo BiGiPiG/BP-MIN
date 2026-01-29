@@ -55,7 +55,7 @@ const processedChats = computed(() => {
 
     if (chat?.participantInfo?.length) {
       const interlocutor = chat.participantInfo.find(
-          participant => participant.nickname !== currentUsername
+          participant => participant.username !== currentUsername
       )
 
       if (interlocutor?.nickname) {
