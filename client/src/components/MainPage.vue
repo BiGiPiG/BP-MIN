@@ -63,11 +63,11 @@ const handleNewChat = (newChat) => {
 }
 
 const initializeWebSocket = async (token) => {
-  const userId = localStorage.getItem('userId')
+  const username = localStorage.getItem('username')
   const connectHeaders = { Authorization: `Bearer ${token}` }
 
   await connect('ws://localhost:8080/chats', connectHeaders, () => {
-    subscribe(`/topic/user/${userId}/chats`, handleNewChat)
+    subscribe(`/topic/user/${username}/chats`, handleNewChat)
 
     const chatList = Array.isArray(chats.value) ? chats.value : []
     if (chatList.length > 0) {
@@ -157,7 +157,7 @@ const handleSearchUser = (chatName) => {
   if (!chatName?.trim()) return
 
   const existingChat = chats.value.find(chat =>
-      chat?.participantInfo?.some(p => p.nickname === chatName)
+      chat?.participantInfo?.some(p => p.username === chatName)
   )
 
   if (existingChat) {
@@ -183,6 +183,23 @@ const sendMessage = async (content) => {
       title: null,
       participants: [username, activeChatName.value]
     })
+
+    if (activeChat.value?.id) {
+      subscribeToChat(activeChat.value.id, handleMessage)
+
+      subscribe(`/topic/chat/${activeChat.value.id}/edited`, (payload) => {
+        messageStore.updateMessage(activeChat.value.id, payload.messageId, payload.newContent)
+      })
+      subscribe(`/topic/chat/${activeChat.value.id}/deleted`, (payload) => {
+        messageStore.removeMessage(activeChat.value.id, payload.messageId)
+      })
+      subscribe(`/topic/chat/${activeChat.value.id}/read/${userId}`, (payload) => {
+        messageStore.readMessage(
+            activeChat.value.id,
+            payload.messageId,
+        )
+      })
+    }
   }
 
   if (!activeChat.value?.id) return

@@ -43,9 +43,6 @@ export function useChats() {
         loading.value = true
         error.value = null
 
-        console.log('Creating chat with:', chatData);
-
-
         try {
             const response = await fetch('/api/chats/create', {
                 method: 'POST',

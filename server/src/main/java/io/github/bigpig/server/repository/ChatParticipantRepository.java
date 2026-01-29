@@ -18,7 +18,7 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
 
     @Query("""
         SELECT new io.github.bigpig.server.dto.chat.ParticipantInfo(
-            cp.user.id, cp.user.nickname
+            cp.user.id, cp.user.nickname, cp.user.username
         )
         FROM ChatParticipant cp
         WHERE cp.chat.id = :chatId
