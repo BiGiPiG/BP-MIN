@@ -21,6 +21,7 @@ const router = useRouter()
 const activeChatName = ref('')
 const activeChat = ref(null)
 const activeChatSubscriptions = ref([])
+const interlocutor = ref('')
 
 // Composable
 const { chats, loading, error, fetchChats, createChat } = useChats()
@@ -124,6 +125,7 @@ const handleChatSelected = (chat, chatName) => {
 
   activeChatName.value = chatName
   activeChat.value = chat
+  interlocutor.value = chat?.participantInfo?.find(p => p.nickname === chatName)?.username
 
   if (!chat?.id) return
 
@@ -153,20 +155,21 @@ const handleReturnToList = () => {
   activeChat.value = null
 }
 
-const handleSearchUser = (chatName) => {
-  if (!chatName?.trim()) return
+const handleSearchUser = (interlocutorNickname, interlocutorUsername) => {
+  if (!interlocutor?.trim()) return
+
+  interlocutor.value = interlocutorUsername
 
   const existingChat = chats.value.find(chat =>
-      chat?.participantInfo?.some(p => p.username === chatName)
+      chat?.participantInfo?.some(p => p.username === interlocutorUsername)
   )
 
   if (existingChat) {
     activeChat.value = existingChat
-    activeChatName.value = chatName
   } else {
-    activeChatName.value = chatName
     activeChat.value = null
   }
+  activeChatName.value = interlocutorNickname
 }
 
 const sendMessage = async (content) => {
@@ -263,6 +266,7 @@ const handleDeleteMessage = (messageId) => {
     <ConversationView
         :current-conversation-name="activeChatName"
         :current-conversation="activeChat"
+        :current-interlocutor="interlocutor"
         @return-to-list="handleReturnToList"
         @send-message="sendMessage"
         @delete-message="handleDeleteMessage"

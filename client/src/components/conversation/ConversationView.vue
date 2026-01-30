@@ -13,7 +13,8 @@ import MessageContextMenu from './MessageContextMenu.vue'
 // Props & Emits
 const props = defineProps({
   currentConversationName: String,
-  currentConversation: [Object, null]
+  currentConversation: [Object, null],
+  currentInterlocutor: String
 })
 
 const emit = defineEmits(['return-to-list', 'send-message', 'delete-message', 'edit-message', `message-read`])
@@ -36,15 +37,32 @@ const editingMessageId = ref(null)
 const messageStore = useMessageStore()
 
 // Computed
-const profileData = computed(() => ({
-  username: localStorage.getItem('username') || 'User',
-  userId: localStorage.getItem('userId') || '',
-  bio: localStorage.getItem('userBio') || 'No bio provided.',
-  birthDate: localStorage.getItem('userBirthDate') || ''
-}))
+const loadInterlocutorProfile = async () => {
+  if (!props.currentInterlocutor) {
+    interlocutorProfile.value = null
+    return
+  }
+
+  try {
+    const res = await fetch(`/api/profiles/${props.currentInterlocutor}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+      }
+    })
+
+    if (!res.ok) {
+      throw new Error('Failed to load profile')
+    }
+
+    interlocutorProfile.value = await res.json()
+  } catch (err) {
+    console.error('Error loading interlocutor profile:', err)
+    interlocutorProfile.value = null
+  }
+}
 
 const profileInitial = computed(() => {
-  return profileData.value.username.charAt(0).toUpperCase() || '?'
+  return interlocutorProfile.value.username.charAt(0).toUpperCase() || '?'
 })
 
 const conversationHistory = computed(() => {
@@ -55,12 +73,24 @@ const conversationHistory = computed(() => {
 
 // Refs
 const messageListRef = ref(null)
+const interlocutorProfile = ref(null)
+
+// При монтировании
+onMounted(() => {
+  document.addEventListener('click', hideContextMenu)
+  loadInterlocutorProfile() // ← загружаем сразу
+})
 
 // Watchers
 watch(() => props.currentConversation?.id, (chatId) => {
   if (chatId) {
     messageStore.loadMessages(chatId)
   }
+})
+
+// При изменении currentInterlocutor
+watch(() => props.currentInterlocutor, () => {
+  loadInterlocutorProfile()
 })
 
 watch(conversationHistory, () => {
@@ -162,7 +192,7 @@ onUnmounted(() => {
 
     <UserProfileModal
         v-if="isProfileVisible"
-        :data="profileData"
+        :data="interlocutorProfile"
         :initial="profileInitial"
         @close="closeProfile"
     />
