@@ -260,6 +260,22 @@ const handleDeleteMessage = (messageId) => {
           :current-chat-id="activeChat?.id"
       />
     </div>
+
+    <div class="sidebar-footer">
+      <button
+          class="profile-avatar-button"
+          @click="router.push(profilePath)"
+          aria-label="Profile"
+      >
+        <div class="profile-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+        </div>
+        <span>Your profile</span>
+      </button>
+    </div>
   </div>
 
   <main>
@@ -274,18 +290,72 @@ const handleDeleteMessage = (messageId) => {
         @message-read="handleMessageRead"
     />
   </main>
-
-  <button
-      v-if="!activeChat"
-      class="profile-avatar-button"
-      @click="router.push(profilePath)"
-      aria-label="Profile"
-  >
-    Your profile
-  </button>
 </template>
 
 <style scoped>
+/* ────────────────────────────────────
+   Sidebar footer with profile button
+   ──────────────────────────────────── */
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+  background: white;
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+}
+
+.profile-avatar-button {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow:
+      0 4px 12px rgba(126, 74, 255, 0.3),
+      0 2px 6px rgba(249, 115, 22, 0.2);
+  transition: all 0.3s ease;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.profile-avatar-button:hover {
+  transform: translateY(-2px);
+  box-shadow:
+      0 6px 20px rgba(126, 74, 255, 0.4),
+      0 4px 12px rgba(249, 115, 22, 0.3);
+}
+
+.profile-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.profile-avatar-button:hover .profile-icon {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.profile-avatar-button span {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ────────────────────────────────────
    Global font settings
    ──────────────────────────────────── */
@@ -425,36 +495,5 @@ main {
 
 .retry-button:hover {
   background: #6a2c91;
-}
-
-/* ────────────────────────────────────
-   Profile button (top-right corner)
-   ──────────────────────────────────── */
-.profile-avatar-button {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  z-index: 30;
-  padding: 8px 16px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%);
-  color: white;
-  font-weight: 600;
-  font-size: 14px;
-  border: none;
-  cursor: pointer;
-  box-shadow:
-      0 4px 12px rgba(126, 74, 255, 0.3),
-      0 2px 6px rgba(249, 115, 22, 0.2);
-  transition: all 0.3s ease;
-  white-space: nowrap;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-}
-
-.profile-avatar-button:hover {
-  transform: translateY(-2px);
-  box-shadow:
-      0 6px 20px rgba(126, 74, 255, 0.4),
-      0 4px 12px rgba(249, 115, 22, 0.3);
 }
 </style>

@@ -108,10 +108,10 @@ const goBack = () => {
     <div class="user-profile-container">
       <!-- Header -->
       <div class="profile-header">
-        <button class="back-button" @click="goBack" aria-label="Назад">
+        <button class="back-button" @click="goBack" aria-label="Back">
           ←
         </button>
-        <h1 class="profile-title">Мой профиль</h1>
+        <h1 class="profile-title">Your profile</h1>
       </div>
 
       <!-- Avatar -->
