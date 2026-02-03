@@ -8,6 +8,20 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// Градиенты из компонента чатов
+const GRADIENTS = [
+  'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)',
+  'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)',
+  'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)',
+  'linear-gradient(135deg, #d946ef 0%, #f0abfc 100%)',
+  'linear-gradient(135deg, #f97316 0%, #fdba74 100%)',
+  'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)',
+  'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)',
+  'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)'
+]
+
+const DEFAULT_AVATAR_GRADIENT = GRADIENTS[0]
+
 // ─────────────────────────────────────
 // Reactive State
 // ─────────────────────────────────────
@@ -16,7 +30,8 @@ const profileData = ref({
   username: '',
   nickname: '',
   bio: '',
-  birthDate: ''
+  birthDate: '',
+  avatarStyle: DEFAULT_AVATAR_GRADIENT
 })
 
 let initialData = {}
@@ -28,8 +43,6 @@ let initialData = {}
 const profileInitial = computed(() => {
   return profileData.value.username.charAt(0).toUpperCase() || '?'
 })
-
-const profileGradient = 'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)'
 
 // ─────────────────────────────────────
 // Lifecycle Hooks
@@ -52,7 +65,8 @@ onMounted(async () => {
       username: data.username || '',
       nickname: data.nickname || '',
       bio: data.bio || '',
-      birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : ''
+      birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : '',
+      avatarStyle: data.avatarStyle || DEFAULT_AVATAR_GRADIENT
     }
 
     initialData = { ...profileData.value }
@@ -65,8 +79,12 @@ onMounted(async () => {
 // Methods
 // ─────────────────────────────────────
 
+const selectAvatarColor = (gradient) => {
+  profileData.value.avatarStyle = gradient
+}
+
 const saveChanges = async () => {
-  const { nickname, username, bio, birthDate } = profileData.value;
+  const { nickname, username, bio, birthDate, avatarStyle } = profileData.value;
 
   try {
     const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
@@ -79,7 +97,8 @@ const saveChanges = async () => {
         nickname,
         username,
         birthDate,
-        bio
+        bio,
+        avatarStyle
       })
     });
 
@@ -89,8 +108,10 @@ const saveChanges = async () => {
     }
 
     initialData = { ...profileData.value };
+    alert('Изменения успешно сохранены!')
   } catch (error) {
     console.error('Ошибка при сохранении профиля:', error);
+    alert('Ошибка при сохранении профиля. Проверьте консоль для деталей.')
   }
 };
 
@@ -114,10 +135,30 @@ const goBack = () => {
         <h1 class="profile-title">Your profile</h1>
       </div>
 
-      <!-- Avatar -->
+      <!-- Avatar with Color Picker -->
       <div class="avatar-section">
-        <div class="avatar-large" :style="{ background: profileGradient }">
+        <div class="avatar-large" :style="{ background: profileData.avatarStyle }">
           {{ profileInitial }}
+        </div>
+
+        <!-- Color Picker Section -->
+        <div class="color-picker-container">
+          <label class="color-picker-label">Цвет аватара</label>
+          <div class="color-options">
+            <button
+                v-for="(gradient, index) in GRADIENTS"
+                :key="index"
+                class="color-option"
+                :style="{ background: gradient }"
+                :class="{ selected: profileData.avatarStyle === gradient }"
+                @click="selectAvatarColor(gradient)"
+                :aria-label="`Выбрать цвет ${index + 1}`"
+            >
+              <div v-if="profileData.avatarStyle === gradient" class="selected-indicator">
+                ✓
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -140,6 +181,8 @@ const goBack = () => {
               type="text"
               class="field-input"
               placeholder="Введите ID"
+              readonly
+              disabled
           />
         </div>
 
@@ -270,8 +313,10 @@ const goBack = () => {
    ──────────────────────────────────── */
 .avatar-section {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin: 8px 0;
+  gap: 20px;
   flex-shrink: 0;
 }
 
@@ -286,14 +331,118 @@ const goBack = () => {
   font-weight: 700;
   font-size: 42px;
   box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.3),
       0 12px 40px rgba(126, 74, 255, 0.35),
       0 6px 20px rgba(249, 115, 22, 0.25);
   transition: transform 0.3s ease;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-large::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 34px;
+  background: linear-gradient(45deg, #7e4aff, #8b5cf6, #a855f7, #d946ef, #f97316, #ea580c);
+  z-index: -1;
+  opacity: 0.7;
+  animation: rotateGradient 4s linear infinite;
 }
 
 .avatar-large:hover {
   transform: scale(1.05);
+}
+
+@keyframes rotateGradient {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ────────────────────────────────────
+   Color Picker Styles
+   ──────────────────────────────────── */
+.color-picker-container {
+  text-align: center;
+  width: 100%;
+  max-width: 400px;
+}
+
+.color-picker-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.color-options {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  border: 1px solid #e8e8e8;
+}
+
+.color-option {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.color-option:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.color-option.selected {
+  transform: scale(1.2);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  z-index: 20;
+  border-color: white;
+}
+
+.color-option::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: linear-gradient(45deg, #7e4aff, #8b5cf6, #a855f7, #d946ef, #f97316, #ea580c);
+  z-index: -1;
+  opacity: 0.6;
+}
+
+.selected-indicator {
+  position: absolute;
+  font-size: 20px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ────────────────────────────────────
@@ -342,6 +491,12 @@ const goBack = () => {
   border-color: #7e4aff;
   background: white;
   box-shadow: 0 0 0 4px rgba(126, 74, 255, 0.15);
+}
+
+.field-input:disabled {
+  background-color: #f0f0f0;
+  color: #888;
+  cursor: not-allowed;
 }
 
 /* ────────────────────────────────────
@@ -452,6 +607,24 @@ const goBack = () => {
     border-radius: 24px;
   }
 
+  .avatar-large::before {
+    inset: -5px;
+    border-radius: 29px;
+  }
+
+  .color-options {
+    gap: 8px;
+  }
+
+  .color-option {
+    width: 38px;
+    height: 38px;
+  }
+
+  .color-option::before {
+    inset: -2px;
+  }
+
   .field-textarea {
     min-height: 100px;
     max-height: 100px;
@@ -492,6 +665,29 @@ const goBack = () => {
     width: 90px;
     height: 90px;
     font-size: 32px;
+    border-radius: 22px;
+  }
+
+  .avatar-large::before {
+    inset: -4px;
+    border-radius: 26px;
+  }
+
+  .color-options {
+    gap: 6px;
+  }
+
+  .color-option {
+    width: 34px;
+    height: 34px;
+  }
+
+  .color-option::before {
+    inset: -2px;
+  }
+
+  .selected-indicator {
+    font-size: 16px;
   }
 
   .field-input,
