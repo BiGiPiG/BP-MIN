@@ -79,10 +79,6 @@ public class JwtFilter extends OncePerRequestFilter {
             throw new AuthException(ErrorCode.JWT_MALFORMED);
         } catch (io.jsonwebtoken.UnsupportedJwtException e) {
             throw new AuthException(ErrorCode.JWT_UNSUPPORTED);
-        } catch (AuthException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new AuthException(ErrorCode.JWT_INVALID);
         }
     }
 }
