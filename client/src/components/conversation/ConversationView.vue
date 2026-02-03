@@ -46,7 +46,8 @@ const loadInterlocutorProfile = async () => {
   try {
     const res = await fetch(`/api/profiles/${props.currentInterlocutor}`, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Content-Type': 'application/json'
       }
     })
 
