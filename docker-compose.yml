@@ -3,11 +3,11 @@ services:
     image: postgres:17-alpine
     restart: always
     environment:
-      - DB_HOST=pg_db
-      - DB_PORT=5432
-      - DB_NAME=min_db
-      - DB_USER=root
-      - DB_PASSWORD=root
+      - POSTGRES_DB=min_db
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
     ports:
@@ -20,7 +20,7 @@ services:
       interval: 2s
       timeout: 5s
       retries: 15
-      start_period: 10s
+      start_period: 15s
 
   redis:
     image: redis:7-alpine
@@ -65,11 +65,13 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://pg_db:5432/min_db
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=root
-      - SPRING_DATA_REDIS_HOST=redis
-      - SPRING_DATA_REDIS_PORT=6379
+      - POSTGRES_HOST=pg_db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=min_db
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
 
 networks:
   bp-min:
