@@ -23,4 +23,8 @@ public class Profile {
 
     @OneToOne(mappedBy = "profile")
     private User user;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "profile_color")
+    private ProfileColor profileColor;
 }

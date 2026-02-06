@@ -13,6 +13,7 @@ public class ProfileMapper {
                     user.getNickname(),
                     user.getUsername(),
                     null,
+                    null,
                     null
             );
         }
@@ -20,7 +21,8 @@ public class ProfileMapper {
             user.getNickname(),
             user.getUsername(),
             profile.getBirthDate(),
-            profile.getBio()
+            profile.getBio(),
+            profile.getProfileColor()
         );
     }
 }

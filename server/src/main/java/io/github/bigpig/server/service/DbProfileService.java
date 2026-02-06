@@ -36,6 +36,7 @@ public class DbProfileService implements ProfileService {
 
         profile.setBio(dto.bio());
         profile.setBirthDate(dto.birthDate());
+        profile.setProfileColor(dto.profileColor());
         userService.save(user);
 
         return profileMapper.buildProfileDto(user, profile);

@@ -24,8 +24,8 @@ public class ChatParticipantService {
         return chatParticipantRepository.findChatParticipantByChatIdAndUserId(chatId, userId);
     }
 
-    public List<ParticipantInfo> findActiveParticipantsWithNicknamesByChatId(Long chatId) {
-        return chatParticipantRepository.findActiveParticipantsWithNicknamesByChatId(chatId);
+    public List<ParticipantInfo> findActiveParticipantsByChatId(Long chatId) {
+        return chatParticipantRepository.findActiveParticipantsByChatId(chatId);
     }
 
 }

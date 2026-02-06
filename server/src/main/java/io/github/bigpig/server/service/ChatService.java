@@ -57,7 +57,7 @@ public class ChatService {
 
     public ChatDto getChatDto(Chat chat) {
         List<ParticipantInfo> participantInfos = chatParticipantService
-                .findActiveParticipantsWithNicknamesByChatId(chat.getId());
+                .findActiveParticipantsByChatId(chat.getId());
 
         Message lastMessage = chat.getMessages().stream()
                 .max(Comparator.comparing(Message::getSentAt))

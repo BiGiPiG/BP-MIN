@@ -33,7 +33,7 @@ public class CacheProfileService implements ProfileService {
     public ProfileDto updateProfile(ProfileDto dto) {
         String key = CACHE_PREFIX + dto.username();
         if (redisTemplate.hasKey(key)) {
-            log.info("profile is deleted from cache for username {}", dto.username());
+            log.info("profile is deleted from cache for username {}", dto);
             redisTemplate.delete(key);
         }
 

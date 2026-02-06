@@ -17,14 +17,14 @@ public interface ChatParticipantRepository extends JpaRepository<ChatParticipant
     List<Chat> findChatsByUsername(@Param("username") String username);
 
     @Query("""
-        SELECT new io.github.bigpig.server.dto.chat.ParticipantInfo(
-            cp.user.id, cp.user.nickname, cp.user.username
-        )
+        SELECT u.id as id, u.nickname as nickname, u.username as username, p.profileColor as profileColor
         FROM ChatParticipant cp
+        JOIN cp.user u
+        LEFT JOIN u.profile p
         WHERE cp.chat.id = :chatId
           AND cp.leftAt IS NULL
     """)
-    List<ParticipantInfo> findActiveParticipantsWithNicknamesByChatId(@Param("chatId") Long chatId);
+    List<ParticipantInfo> findActiveParticipantsByChatId(@Param("chatId") Long chatId);
 
     ChatParticipant findChatParticipantByChatIdAndUserId(Long chatId, Long userId);
 }

@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// Градиенты из компонента чатов
+// Массив всех градиентов для отображения
 const GRADIENTS = [
   'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)',
   'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)',
@@ -20,7 +20,22 @@ const GRADIENTS = [
   'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)'
 ]
 
-const DEFAULT_AVATAR_GRADIENT = GRADIENTS[0]
+// Маппинг градиентов в имена констант enum
+const gradientToEnumMap = {
+  'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)': 'VIOLET_GRADIENT',
+  'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)': 'INDIGO_GRADIENT',
+  'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)': 'FUCHSIA_GRADIENT',
+  'linear-gradient(135deg, #d946ef 0%, #f0abfc 100%)': 'PINK_GRADIENT',
+  'linear-gradient(135deg, #f97316 0%, #fdba74 100%)': 'ORANGE_GRADIENT',
+  'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)': 'AMBER_GRADIENT',
+  'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)': 'BICOLOR_VIOLET_ORANGE',
+  'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)': 'BICOLOR_FUCHSIA_AMBER'
+}
+
+// Обратное маппирование: из имени константы в строку градиента
+const enumToGradientMap = Object.fromEntries(
+    Object.entries(gradientToEnumMap).map(([gradient, enumName]) => [enumName, gradient])
+)
 
 // ─────────────────────────────────────
 // Reactive State
@@ -31,7 +46,7 @@ const profileData = ref({
   nickname: '',
   bio: '',
   birthDate: '',
-  avatarStyle: DEFAULT_AVATAR_GRADIENT
+  avatarStyle: GRADIENTS[0] // Значение по умолчанию
 })
 
 let initialData = {}
@@ -51,25 +66,34 @@ const profileInitial = computed(() => {
 onMounted(async () => {
   try {
     const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
-      method: "GET",
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         'Content-Type': 'application/json'
       }
     })
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
     const data = await response.json()
-    console.log(data)
+    console.log('Полученные данные профиля:', data)
+
+    const gradient = enumToGradientMap[data.profileColor] || GRADIENTS[0]
 
     profileData.value = {
       username: data.username || '',
       nickname: data.nickname || '',
       bio: data.bio || '',
-      birthDate: data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : '',
-      avatarStyle: data.avatarStyle || DEFAULT_AVATAR_GRADIENT
+      birthDate: data.birthDate
+          ? new Date(data.birthDate).toISOString().split('T')[0]
+          : '',
+      avatarStyle: gradient
     }
 
     initialData = { ...profileData.value }
+    console.log('Инициализированные данные:', profileData.value)
   } catch (error) {
     console.error('Ошибка загрузки профиля:', error)
   }
@@ -80,11 +104,28 @@ onMounted(async () => {
 // ─────────────────────────────────────
 
 const selectAvatarColor = (gradient) => {
+  console.log('Выбран градиент:', gradient)
   profileData.value.avatarStyle = gradient
 }
 
 const saveChanges = async () => {
-  const { nickname, username, bio, birthDate, avatarStyle } = profileData.value;
+  const { nickname, username, bio, birthDate, avatarStyle } = profileData.value
+
+  console.log('Строка градиента:', avatarStyle)
+
+  // Преобразуем строку градиента в имя константы для отправки на бэкенд
+  const profileColorEnum = gradientToEnumMap[avatarStyle] || 'VIOLET_GRADIENT'
+  console.log('Имя константы для отправки:', profileColorEnum)
+
+  const requestBody = {
+    nickname,
+    username,
+    birthDate,
+    bio,
+    profileColor: profileColorEnum
+  }
+
+  console.log('Отправляемые данные:', requestBody)
 
   try {
     const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
@@ -93,29 +134,31 @@ const saveChanges = async () => {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        nickname,
-        username,
-        birthDate,
-        bio,
-        avatarStyle
-      })
-    });
+      body: JSON.stringify(requestBody)
+    })
+
+    console.log('Статус ответа:', response.status)
 
     if (!response.ok) {
-      console.error('Ошибка HTTP:', response.status);
-      return;
+      const errorText = await response.text()
+      console.error('Ошибка HTTP:', response.status, errorText)
+      alert(`Ошибка при сохранении: ${response.status}`)
+      return
     }
 
-    initialData = { ...profileData.value };
-    alert('Изменения успешно сохранены!')
+    const responseData = await response.json()
+    console.log('Успешный ответ:', responseData)
+
+    initialData = { ...profileData.value }
+    alert('Профиль успешно сохранён!')
   } catch (error) {
-    console.error('Ошибка при сохранении профиля:', error);
-    alert('Ошибка при сохранении профиля. Проверьте консоль для деталей.')
+    console.error('Ошибка при сохранении профиля:', error)
+    alert('Произошла ошибка при сохранении профиля')
   }
-};
+}
 
 const discardChanges = () => {
+  console.log('Отмена изменений')
   profileData.value = { ...initialData }
 }
 
@@ -220,9 +263,9 @@ const goBack = () => {
 </template>
 
 <style scoped>
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Outer Container
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .user-profile-outer {
   display: flex;
   justify-content: center;
@@ -233,9 +276,9 @@ const goBack = () => {
   box-sizing: border-box;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Profile Container
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .user-profile-container {
   width: 100%;
   max-width: 760px;
@@ -262,9 +305,9 @@ const goBack = () => {
   display: none;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Layout Sections
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .profile-header,
 .avatar-section,
 .fields-grid,
@@ -272,9 +315,9 @@ const goBack = () => {
   flex-shrink: 0;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Back Button
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .back-button {
   width: 44px;
   height: 44px;
@@ -296,9 +339,9 @@ const goBack = () => {
   transform: translateX(-2px);
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Profile Title
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .profile-title {
   font-size: 28px;
   font-weight: 700;
@@ -308,9 +351,9 @@ const goBack = () => {
   text-align: center;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Avatar Section
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .avatar-section {
   display: flex;
   flex-direction: column;
@@ -334,8 +377,9 @@ const goBack = () => {
       0 0 0 4px rgba(255, 255, 255, 0.3),
       0 12px 40px rgba(126, 74, 255, 0.35),
       0 6px 20px rgba(249, 115, 22, 0.25);
-  transition: transform 0.3s ease;
-  flex-shrink: 0;
+  transition:
+      transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
 }
@@ -343,26 +387,34 @@ const goBack = () => {
 .avatar-large::before {
   content: '';
   position: absolute;
-  inset: -6px;
-  border-radius: 34px;
-  background: linear-gradient(45deg, #7e4aff, #8b5cf6, #a855f7, #d946ef, #f97316, #ea580c);
+  inset: -2px;
+  border-radius: 29px;
+  background: linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0),
+      rgba(255, 255, 255, 0.3)
+  );
   z-index: -1;
-  opacity: 0.7;
-  animation: rotateGradient 4s linear infinite;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .avatar-large:hover {
-  transform: scale(1.05);
+  transform: scale(1.08);
+  box-shadow:
+      0 0 0 4px rgba(255, 255, 255, 0.4),
+      0 18px 55px rgba(126, 74, 255, 0.5),
+      0 10px 30px rgba(249, 115, 22, 0.4);
 }
 
-@keyframes rotateGradient {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.avatar-large:hover::before {
+  opacity: 0.5;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Color Picker Styles
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .color-picker-container {
   text-align: center;
   width: 100%;
@@ -402,22 +454,22 @@ const goBack = () => {
   justify-content: center;
   font-weight: bold;
   color: white;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   transition: all 0.2s ease;
   position: relative;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .color-option:hover {
   transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
 
 .color-option.selected {
   transform: scale(1.2);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   z-index: 20;
   border-color: white;
 }
@@ -427,7 +479,15 @@ const goBack = () => {
   position: absolute;
   inset: -3px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #7e4aff, #8b5cf6, #a855f7, #d946ef, #f97316, #ea580c);
+  background: linear-gradient(
+      45deg,
+      #7e4aff,
+      #8b5cf6,
+      #a855f7,
+      #d946ef,
+      #f97316,
+      #ea580c
+  );
   z-index: -1;
   opacity: 0.6;
 }
@@ -435,19 +495,28 @@ const goBack = () => {
 .selected-indicator {
   position: absolute;
   font-size: 20px;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
   animation: popIn 0.3s ease-out;
 }
 
 @keyframes popIn {
-  0% { transform: scale(0.5); opacity: 0; }
-  70% { transform: scale(1.2); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Form Fields Grid
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .fields-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -499,9 +568,9 @@ const goBack = () => {
   cursor: not-allowed;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Textarea Specific
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .field-textarea {
   min-height: 120px;
   max-height: 120px;
@@ -528,9 +597,9 @@ const goBack = () => {
   background: #a1a1a1;
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Action Buttons
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 .actions {
   display: flex;
   gap: 16px;
@@ -573,9 +642,9 @@ const goBack = () => {
   transform: translateY(-2px);
 }
 
-/* ────────────────────────────────────
+/* ─────────────────────────────────────
    Responsive Design
-   ──────────────────────────────────── */
+   ───────────────────────────────────── */
 @media (max-width: 768px) {
   .user-profile-outer {
     padding: 16px;
