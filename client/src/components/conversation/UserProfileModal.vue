@@ -10,7 +10,7 @@
         <div class="profile-avatar-section">
           <div
               class="profile-avatar"
-              :style="{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }"
+              :style="{ background: data.profileColor }"
           >
             {{ initial }}
           </div>

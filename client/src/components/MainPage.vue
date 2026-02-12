@@ -155,10 +155,13 @@ const handleReturnToList = () => {
   activeChat.value = null
 }
 
-const handleSearchUser = (interlocutorNickname, interlocutorUsername) => {
-  if (!interlocutor?.trim()) return
+const handleSearchUser = (interlocutorUsername, interlocutorNickname) => {
+  if (!interlocutorUsername?.trim()) {
+    return
+  }
 
   interlocutor.value = interlocutorUsername
+  console.log("ok")
 
   const existingChat = chats.value.find(chat =>
       chat?.participantInfo?.some(p => p.username === interlocutorUsername)
@@ -184,7 +187,7 @@ const sendMessage = async (content) => {
     activeChat.value = await createChat({
       type: 'DIRECT',
       title: null,
-      participants: [username, activeChatName.value]
+      participants: [username, interlocutor.value]
     })
 
     if (activeChat.value?.id) {

@@ -8,7 +8,6 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-// Массив всех градиентов для отображения
 const GRADIENTS = [
   'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)',
   'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)',
@@ -17,25 +16,8 @@ const GRADIENTS = [
   'linear-gradient(135deg, #f97316 0%, #fdba74 100%)',
   'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)',
   'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)',
-  'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)'
+  'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)',
 ]
-
-// Маппинг градиентов в имена констант enum
-const gradientToEnumMap = {
-  'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)': 'VIOLET_GRADIENT',
-  'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)': 'INDIGO_GRADIENT',
-  'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)': 'FUCHSIA_GRADIENT',
-  'linear-gradient(135deg, #d946ef 0%, #f0abfc 100%)': 'PINK_GRADIENT',
-  'linear-gradient(135deg, #f97316 0%, #fdba74 100%)': 'ORANGE_GRADIENT',
-  'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)': 'AMBER_GRADIENT',
-  'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)': 'BICOLOR_VIOLET_ORANGE',
-  'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)': 'BICOLOR_FUCHSIA_AMBER'
-}
-
-// Обратное маппирование: из имени константы в строку градиента
-const enumToGradientMap = Object.fromEntries(
-    Object.entries(gradientToEnumMap).map(([gradient, enumName]) => [enumName, gradient])
-)
 
 // ─────────────────────────────────────
 // Reactive State
@@ -46,7 +28,7 @@ const profileData = ref({
   nickname: '',
   bio: '',
   birthDate: '',
-  avatarStyle: GRADIENTS[0] // Значение по умолчанию
+  avatarStyle: GRADIENTS[0]
 })
 
 let initialData = {}
@@ -78,9 +60,7 @@ onMounted(async () => {
     }
 
     const data = await response.json()
-    console.log('Полученные данные профиля:', data)
-
-    const gradient = enumToGradientMap[data.profileColor] || GRADIENTS[0]
+    console.log(data)
 
     profileData.value = {
       username: data.username || '',
@@ -89,11 +69,10 @@ onMounted(async () => {
       birthDate: data.birthDate
           ? new Date(data.birthDate).toISOString().split('T')[0]
           : '',
-      avatarStyle: gradient
+      avatarStyle: data.profileColor
     }
 
     initialData = { ...profileData.value }
-    console.log('Инициализированные данные:', profileData.value)
   } catch (error) {
     console.error('Ошибка загрузки профиля:', error)
   }
@@ -104,25 +83,18 @@ onMounted(async () => {
 // ─────────────────────────────────────
 
 const selectAvatarColor = (gradient) => {
-  console.log('Выбран градиент:', gradient)
   profileData.value.avatarStyle = gradient
 }
 
 const saveChanges = async () => {
   const { nickname, username, bio, birthDate, avatarStyle } = profileData.value
 
-  console.log('Строка градиента:', avatarStyle)
-
-  // Преобразуем строку градиента в имя константы для отправки на бэкенд
-  const profileColorEnum = gradientToEnumMap[avatarStyle] || 'VIOLET_GRADIENT'
-  console.log('Имя константы для отправки:', profileColorEnum)
-
   const requestBody = {
     nickname,
     username,
     birthDate,
     bio,
-    profileColor: profileColorEnum
+    profileColor: avatarStyle
   }
 
   console.log('Отправляемые данные:', requestBody)

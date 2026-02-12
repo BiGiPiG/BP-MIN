@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import {computed, ref} from 'vue'
 
 // ─────────────────────────────────────
 // Props & Emits
@@ -38,40 +38,53 @@ const GRADIENTS = [
 // Computed Properties
 // ─────────────────────────────────────
 
-const chatGradients = computed(() => {
-  return props.chats?.reduce((acc, chat) => {
-    acc[chat.id] = GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)]
-    return acc
-  }, {}) || {}
-})
-
 const processedChats = computed(() => {
   const currentUsername = localStorage.getItem('username') || ''
 
   return props.chats.map(chat => {
-    // Get interlocutor name
     let displayName = 'Unknown Chat'
     let initial = '?'
+    let profileColor = null
+    let interlocutorId = null
 
     if (chat?.participantInfo?.length) {
       const interlocutor = chat.participantInfo.find(
           participant => participant.username !== currentUsername
       )
 
-      if (interlocutor?.nickname) {
-        displayName = interlocutor.nickname
-        initial = interlocutor.nickname.charAt(0).toUpperCase() || '?'
+      if (interlocutor) {
+        interlocutorId = interlocutor.id || interlocutor.username
+        displayName = interlocutor.nickname || 'Unknown'
+        initial = interlocutor.nickname?.charAt(0).toUpperCase() || '?'
+        profileColor = interlocutor.profileColor
       }
     }
+
+    const gradientIndex = interlocutorId
+        ? Math.abs(hashCode(interlocutorId)) % GRADIENTS.length
+        : Math.floor(Math.random() * GRADIENTS.length)
+
+    const avatarBackground = profileColor || GRADIENTS[gradientIndex]
 
     return {
       ...chat,
       displayName,
       initial,
+      avatarBackground,
       isActive: props.currentChatId === chat.id
     }
   })
 })
+
+const hashCode = (str) => {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash
+  }
+  return hash
+}
 
 // ─────────────────────────────────────
 // Methods
@@ -93,7 +106,7 @@ const switchActive = (chat) => {
     >
       <div
           class="avatar"
-          :style="{ background: chatGradients[chat.id] }"
+          :style="{ background: chat.avatarBackground }"
       >
         {{ chat.initial }}
       </div>
@@ -106,7 +119,6 @@ const switchActive = (chat) => {
     </div>
   </div>
 </template>
-
 <style scoped>
 /* ────────────────────────────────────
    Chat List Container

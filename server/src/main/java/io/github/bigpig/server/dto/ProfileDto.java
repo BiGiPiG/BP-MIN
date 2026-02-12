@@ -1,6 +1,5 @@
 package io.github.bigpig.server.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.github.bigpig.server.entity.user.ProfileColor;
 
 public record ProfileDto(
@@ -8,6 +7,5 @@ public record ProfileDto(
         String username,
         String birthDate,
         String bio,
-        @JsonProperty("profileColor")
         ProfileColor profileColor
 ) {}
