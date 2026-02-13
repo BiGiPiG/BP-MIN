@@ -14,7 +14,8 @@ import MessageContextMenu from './MessageContextMenu.vue'
 const props = defineProps({
   currentConversationName: String,
   currentConversation: [Object, null],
-  currentInterlocutor: String
+  currentInterlocutor: String,
+  interlocutorStatus: String
 })
 
 const emit = defineEmits(['return-to-list', 'send-message', 'delete-message', 'edit-message', `message-read`])
@@ -170,6 +171,7 @@ onUnmounted(() => {
   <div v-else class="conversation-interface">
     <ConversationHeader
         :contact-name="currentConversationName"
+        :interlocutor-status="interlocutorStatus"
         @back="$emit('return-to-list')"
         @open-profile="openProfile"
     />

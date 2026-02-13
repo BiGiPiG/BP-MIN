@@ -22,6 +22,7 @@ const activeChatName = ref('')
 const activeChat = ref(null)
 const activeChatSubscriptions = ref([])
 const interlocutor = ref('')
+const interlocutorStatus = ref('')
 
 // Composable
 const { chats, loading, error, fetchChats, createChat } = useChats()
@@ -143,6 +144,9 @@ const handleChatSelected = (chat, chatName) => {
             chatId,
             payload.messageId,
         )
+      }),
+      subscribe(`/topic/chat/${chatId}/status`, (payload) => {
+        interlocutorStatus.value = payload.status
       })
   )
 }
@@ -182,7 +186,6 @@ const sendMessage = async (content) => {
   const userId = localStorage.getItem('userId')
   const username = localStorage.getItem('username')
 
-  // Create chat if needed
   if (!activeChat.value && activeChatName.value) {
     activeChat.value = await createChat({
       type: 'DIRECT',
@@ -286,6 +289,7 @@ const handleDeleteMessage = (messageId) => {
         :current-conversation-name="activeChatName"
         :current-conversation="activeChat"
         :current-interlocutor="interlocutor"
+        :interlocutor-status="interlocutorStatus"
         @return-to-list="handleReturnToList"
         @send-message="sendMessage"
         @delete-message="handleDeleteMessage"
