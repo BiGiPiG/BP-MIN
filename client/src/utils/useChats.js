@@ -33,7 +33,6 @@ export function useChats() {
             chats.value = []
             console.error('Failed to load chats', err)
         } finally {
-            console.log(chats.value)
             loading.value = false
         }
     }

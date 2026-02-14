@@ -146,7 +146,9 @@ const handleChatSelected = (chat, chatName) => {
         )
       }),
       subscribe(`/topic/chat/${chatId}/status`, (payload) => {
-        interlocutorStatus.value = payload.status
+        if (activeChatName.value === payload.nickname) {
+          interlocutorStatus.value = payload.status
+        }
       })
   )
 }
@@ -207,6 +209,13 @@ const sendMessage = async (content) => {
             activeChat.value.id,
             payload.messageId,
         )
+      })
+      subscribe(`/topic/chat/${activeChat.value.id}/status`, (payload) => {
+        console.log(payload.status)
+        console.log(payload.username)
+        if (activeChatName.value === payload.nickname) {
+            interlocutorStatus.value = payload.status
+        }
       })
     }
   }

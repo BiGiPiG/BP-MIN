@@ -8,6 +8,26 @@ export function useStomp() {
     const error = ref(null)
     const subscriptions = ref(new Map())
 
+    let heartbeatInterval = null
+    const HEARTBEAT_INTERVAL = 30000
+
+    const startHeartbeat = () => {
+        stopHeartbeat()
+
+        heartbeatInterval = setInterval(() => {
+            if (client.value?.connected) {
+                send('/bp-min/chat.updateStatus')
+            }
+        }, HEARTBEAT_INTERVAL)
+    }
+
+    const stopHeartbeat = () => {
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval)
+            heartbeatInterval = null
+        }
+    }
+
     const connect = (brokerURL, connectHeaders = {}, onConnectCallback = null) => {
         return new Promise((resolve, reject) => {
             try {
@@ -24,6 +44,7 @@ export function useStomp() {
                     onConnect: () => {
                         isConnected.value = true
                         console.log('STOMP connected')
+                        startHeartbeat()
                         if (typeof onConnectCallback === 'function') {
                             try {
                                 onConnectCallback()
@@ -75,6 +96,7 @@ export function useStomp() {
 
                 console.log('STOMP fully disconnected')
                 resolve(true)
+                stopHeartbeat()
             } else {
                 resolve(false)
             }
@@ -172,7 +194,7 @@ export function useStomp() {
         }
     }
 
-    const send = (destination, body, headers = {}) => {
+    const send = (destination, body = null, headers = {}) => {
         if (client.value && isConnected.value) {
             client.value.publish({
                 destination,

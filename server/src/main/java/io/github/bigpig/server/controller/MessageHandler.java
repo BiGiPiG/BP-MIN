@@ -3,6 +3,7 @@ package io.github.bigpig.server.controller;
 import io.github.bigpig.server.dto.message.*;
 import io.github.bigpig.server.entity.user.User;
 import io.github.bigpig.server.service.MessageService;
+import io.github.bigpig.server.service.PresenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -18,6 +19,7 @@ public class MessageHandler {
 
     private final MessageService messageService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PresenceService presenceService;
 
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload MessageDto message) {
@@ -57,5 +59,11 @@ public class MessageHandler {
 
         messagingTemplate.convertAndSend("/topic/chat/" + readRequest.chatId() + "/read/" + senderId,
                 new ReadMessageResponse(readRequest.chatId(), readRequest.messageId()));
+    }
+
+    @MessageMapping("/chat.updateStatus")
+    public void updateStatus(@AuthenticationPrincipal User user) {
+        log.debug("Update status for user ID: {}", user.getId());
+        presenceService.updatePresence(user.getId());
     }
 }

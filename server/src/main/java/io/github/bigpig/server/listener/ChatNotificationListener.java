@@ -4,6 +4,7 @@ import io.github.bigpig.server.dto.chat.ChatDto;
 import io.github.bigpig.server.entity.chat.Chat;
 import io.github.bigpig.server.entity.chat.ChatParticipant;
 import io.github.bigpig.server.event.ChatCreatedEvent;
+import io.github.bigpig.server.event.PresenceUpdateEvent;
 import io.github.bigpig.server.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,5 +33,11 @@ public class ChatNotificationListener {
             messagingTemplate.convertAndSend("/topic/user/" + username + "/chats", chatDto);
             log.debug("Notification sent for chat {} to user {}", chatDto.id(), username);
         }
+    }
+
+    @EventListener
+    public void userGetOfflineStatusEvent(PresenceUpdateEvent event) {
+        log.info("User {} get status {}", event.getPresenceUpdateDto().username(), event.getPresenceUpdateDto().status());
+        messagingTemplate.convertAndSend("/topic/chat/" + event.getChatId() + "/status", event.getPresenceUpdateDto());
     }
 }
