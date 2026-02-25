@@ -1,26 +1,33 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useMessageStore } from '@/utils/useMessages'
+import ConversationPlaceholder from "@/components/conversation/ConversationPlaceholder.vue";
+import ConversationHeader from "@/components/conversation/ConversationHeader.vue";
+import MessageList from "@/components/conversation/MessageList.vue";
+import MessageComposer from "@/components/conversation/MessageComposer.vue";
+import UserProfileModal from "@/components/conversation/UserProfileModal.vue";
+import MessageContextMenu from "@/components/conversation/MessageContextMenu.vue";
 
-// Child components
-import ConversationPlaceholder from './ConversationPlaceholder.vue'
-import ConversationHeader from './ConversationHeader.vue'
-import MessageList from './MessageList.vue'
-import MessageComposer from './MessageComposer.vue'
-import UserProfileModal from './UserProfileModal.vue'
-import MessageContextMenu from './MessageContextMenu.vue'
+// ... импорты компонентов ...
 
-// Props & Emits
 const props = defineProps({
   currentConversationName: String,
   currentConversation: [Object, null],
   currentInterlocutor: String,
-  interlocutorStatus: String
+  interlocutorStatus: String // Пропс для WebSocket обновлений
 })
 
-const emit = defineEmits(['return-to-list', 'send-message', 'delete-message', 'edit-message', `message-read`])
+const emit = defineEmits(['return-to-list', 'send-message', 'delete-message', 'edit-message', 'message-read'])
 
-// Reactive state
+// ─────────────────────────────────────
+// 1. Объявляем Refs
+// ─────────────────────────────────────
+const messageListRef = ref(null)
+const interlocutorProfile = ref(null)
+
+// Локальный статус: инициализируем сразу значением от родителя
+const localInterlocutorStatus = ref(props.interlocutorStatus || 'offline')
+
 const isProfileVisible = ref(false)
 const messageText = ref('')
 const currentUserId = Number(localStorage.getItem('userId'))
@@ -33,38 +40,13 @@ const contextMenu = ref({
 })
 
 const editingMessageId = ref(null)
-
-// Composable
 const messageStore = useMessageStore()
 
-// Computed
-const loadInterlocutorProfile = async () => {
-  if (!props.currentInterlocutor) {
-    interlocutorProfile.value = null
-    return
-  }
-
-  try {
-    const res = await fetch(`/api/profiles/${props.currentInterlocutor}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!res.ok) {
-      throw new Error('Failed to load profile')
-    }
-
-    interlocutorProfile.value = await res.json()
-  } catch (err) {
-    console.error('Error loading interlocutor profile:', err)
-    interlocutorProfile.value = null
-  }
-}
-
+// ─────────────────────────────────────
+// 2. Computed
+// ─────────────────────────────────────
 const profileInitial = computed(() => {
-  return interlocutorProfile.value.username.charAt(0).toUpperCase() || '?'
+  return interlocutorProfile.value?.username?.charAt(0).toUpperCase() || '?'
 })
 
 const conversationHistory = computed(() => {
@@ -73,56 +55,53 @@ const conversationHistory = computed(() => {
       : []
 })
 
-// Refs
-const messageListRef = ref(null)
-const interlocutorProfile = ref(null)
-
-// При монтировании
-onMounted(() => {
-  document.addEventListener('click', hideContextMenu)
-  loadInterlocutorProfile() // ← загружаем сразу
-})
-
-// Watchers
-watch(() => props.currentConversation?.id, (chatId) => {
-  if (chatId) {
-    messageStore.loadMessages(chatId)
+// ─────────────────────────────────────
+// 3. Функции
+// ─────────────────────────────────────
+const loadInterlocutorProfile = async () => {
+  if (!props.currentInterlocutor) {
+    interlocutorProfile.value = null
+    localInterlocutorStatus.value = 'offline'
+    return
   }
-})
 
-// При изменении currentInterlocutor
-watch(() => props.currentInterlocutor, () => {
-  loadInterlocutorProfile()
-})
+  try {
+    const res = await fetch(`/api/profiles/interlocutor-info/${props.currentInterlocutor}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Content-Type': 'application/json'
+      }
+    })
 
-watch(conversationHistory, () => {
-  nextTick(() => {
-    messageListRef.value?.scrollToBottom()
-  })
-}, { deep: true })
+    if (!res.ok) throw new Error('Failed to load profile')
 
-// Methods — Profile
-const openProfile = () => isProfileVisible.value = true
-const closeProfile = () => isProfileVisible.value = false
+    const data = await res.json()
+    interlocutorProfile.value = data
 
-// Methods — Message input
-const handleSendMessage = (text) => {
-  if (text && props.currentConversationName) {
-    emit('send-message', text)
+    if (data.status) {
+      localInterlocutorStatus.value = data.status
+    }
+  } catch (err) {
+    console.error('Error loading interlocutor profile:', err)
+    interlocutorProfile.value = null
   }
 }
 
-// Methods — Context menu
+const openProfile = () => isProfileVisible.value = true
+const closeProfile = () => isProfileVisible.value = false
+
+const handleSendMessage = (text) => {
+  if (text && props.currentConversationName) {
+    emit('send-message', text)
+    messageText.value = ''
+  }
+}
+
 const showContextMenu = (e, message) => {
   e.preventDefault()
   const x = Math.max(e.clientX, 140)
   const y = Math.max(e.clientY, 60)
-  contextMenu.value = {
-    visible: true,
-    x,
-    y,
-    messageId: message.id
-  }
+  contextMenu.value = { visible: true, x, y, messageId: message.id }
 }
 
 const hideContextMenu = () => {
@@ -155,13 +134,38 @@ const handleEditCancel = () => {
   editingMessageId.value = null
 }
 
-// Lifecycle
+// ─────────────────────────────────────
+// 4. Lifecycle & Watchers
+// ─────────────────────────────────────
 onMounted(() => {
   document.addEventListener('click', hideContextMenu)
+  loadInterlocutorProfile() // 1. Загружаем начальный статус из API
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', hideContextMenu)
+})
+
+watch(() => props.currentConversation?.id, (chatId) => {
+  if (chatId) {
+    messageStore.loadMessages(chatId)
+  }
+})
+
+watch(() => props.currentInterlocutor, () => {
+  loadInterlocutorProfile()
+})
+
+watch(() => props.interlocutorStatus, (newStatus) => {
+  if (newStatus && newStatus !== localInterlocutorStatus.value) {
+    localInterlocutorStatus.value = newStatus
+  }
+})
+
+watch(() => conversationHistory.value.length, () => {
+  nextTick(() => {
+    messageListRef.value?.scrollToBottom()
+  })
 })
 </script>
 
@@ -171,7 +175,7 @@ onUnmounted(() => {
   <div v-else class="conversation-interface">
     <ConversationHeader
         :contact-name="currentConversationName"
-        :interlocutor-status="interlocutorStatus"
+        :interlocutor-status="localInterlocutorStatus"
         @back="$emit('return-to-list')"
         @open-profile="openProfile"
     />

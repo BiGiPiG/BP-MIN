@@ -41,6 +41,8 @@ const statusText = computed(() => {
     AWAY: 'away',
     BUSY: 'busy'
   }
+  console.log(props.interlocutorStatus)
+  console.log(statusMap[props.interlocutorStatus])
   return statusMap[props.interlocutorStatus] || 'offline'
 })
 </script>

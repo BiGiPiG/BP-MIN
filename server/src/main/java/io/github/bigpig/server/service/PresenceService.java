@@ -8,47 +8,39 @@ import io.github.bigpig.server.exceptions.AppException;
 import io.github.bigpig.server.exceptions.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class PresenceService {
-    private final static int CHECK_INTERVAL = 10000;
-    private final static int INACTIVE_INTERVAL = 60000;
+    private static final String ONLINE = "ONLINE";
+    private static final String OFFLINE = "OFFLINE";
+    private static final String PREFIX = "cache_";
 
 
     private final ApplicationEventPublisher eventPublisher;
     private final ChatParticipantService chatParticipantService;
     private final UserService userService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    private final Map<Long, Long> userLastActivity = new ConcurrentHashMap<>();
-
-
-    public void updatePresence(Long userId) {
-        long now = System.currentTimeMillis();
-
-        if (!userLastActivity.containsKey(userId)) {
-            broadCastToAllChats(userId, "ONLINE");
+    public String getStatus(Long userId) {
+        if (redisTemplate.opsForValue().get(PREFIX + userId) != null) {
+            return ONLINE;
         }
-        userLastActivity.put(userId, now);
+        return OFFLINE;
     }
 
-    @Scheduled(fixedRate = CHECK_INTERVAL)
-    public void checkLastActivity() {
-        for (Long userId : userLastActivity.keySet()) {
-            Long lastActivity = userLastActivity.get(userId);
-            System.out.println(userId);
-            if (System.currentTimeMillis() - lastActivity > INACTIVE_INTERVAL) {
-                broadCastToAllChats(userId, "OFFLINE");
-                userLastActivity.remove(userId);
-            } else {
-                broadCastToAllChats(userId, "ONLINE");
-            }
+    public void changePresence(Long userId, String status) {
+        switch (status) {
+            case ONLINE:
+                redisTemplate.opsForValue().set(PREFIX + userId, ONLINE);
+                break;
+            case OFFLINE:
+                redisTemplate.delete(PREFIX + userId);
+                break;
         }
+        broadCastToAllChats(userId, status);
     }
 
     public void broadCastToAllChats(Long userId, String status) {

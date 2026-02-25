@@ -27,8 +27,9 @@ watch(() => props.modelValue, (val) => {
 })
 
 const handleSend = () => {
-  const text = localText.value.trim()
+  const text = localText.value
   if (text) {
+    console.log('text')
     emit('send', text)
     localText.value = ''
     emit('update:modelValue', '')

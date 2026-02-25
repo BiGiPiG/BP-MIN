@@ -226,9 +226,8 @@ const sendMessage = async (content) => {
     chatId: activeChat.value.id,
     senderId: userId,
     content: trimmedContent,
-    sentAt: new Date().toISOString().slice(0, -1)
   }
-
+  console.log('message send')
   send('/bp-min/chat.sendMessage', messagePayload)
 }
 

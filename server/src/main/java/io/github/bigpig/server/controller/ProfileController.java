@@ -1,6 +1,7 @@
 package io.github.bigpig.server.controller;
 
 import io.github.bigpig.server.dto.ProfileDto;
+import io.github.bigpig.server.dto.chat.InterlocutorInfoDto;
 import io.github.bigpig.server.service.ProfileService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,13 @@ public class ProfileController {
         log.info("Fetching public profile for username: {}", username);
         ProfileDto profile = profileService.getProfileByUsername(username);
         return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/interlocutor-info/{username}")
+    public ResponseEntity<InterlocutorInfoDto> getInterlocutorInfo(@PathVariable String username) {
+        log.info("Fetching interlocutor info for username: {}", username);
+        InterlocutorInfoDto interlocutor = profileService.getInterlocutorInfo(username);
+        return ResponseEntity.ok(interlocutor);
     }
 
     @PutMapping("/{username}")

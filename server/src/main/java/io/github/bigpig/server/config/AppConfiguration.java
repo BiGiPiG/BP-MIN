@@ -1,6 +1,5 @@
 package io.github.bigpig.server.config;
 
-import io.github.bigpig.server.dto.ProfileDto;
 import io.github.bigpig.server.repository.UserRepository;
 import io.github.bigpig.server.service.*;
 import org.springframework.context.annotation.Bean;
@@ -16,7 +15,7 @@ public class AppConfiguration {
     }
 
     @Bean
-    public ProfileService profileService(DbProfileService dbProfileService, RedisTemplate<String, ProfileDto> redisTemplate) {
+    public ProfileService profileService(DbProfileService dbProfileService, RedisTemplate<String, Object> redisTemplate) {
         return new CacheProfileService(dbProfileService, redisTemplate);
     }
 
