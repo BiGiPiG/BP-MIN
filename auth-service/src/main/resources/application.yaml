@@ -1,3 +1,23 @@
 spring:
   application:
     name: auth-service
+  datasource:
+    url: jdbc:h2:mem:authdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+security:
+  jwt:
+    secret_key: YOUR_SECRET_KEY
+    access_token_expiration: 30000000 # 30 seconds
+    refresh_token_expiration: 252000000 # 7 days
+
+server:
+  port: 9001
