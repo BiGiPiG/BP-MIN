@@ -1,5 +1,6 @@
 package auth_service.filter;
 
+import auth_service.entity.User;
 import auth_service.service.CustomUserDetailsService;
 import auth_service.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -11,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -43,14 +43,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                User user = (User) userDetailsService.loadUserByUsername(username);
 
-                if (jwtService.isValid(jwt, userDetails)) {
+                if (jwtService.isValid(jwt, user)) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
-                                    userDetails,
+                                    user,
                                     null,
-                                    userDetails.getAuthorities()
+                                    user.getAuthorities()
                             );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

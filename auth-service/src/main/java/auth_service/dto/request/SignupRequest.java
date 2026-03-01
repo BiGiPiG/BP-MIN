@@ -1,4 +1,4 @@
-package auth_service.dto;
+package auth_service.dto.request;
 
 public record SignupRequest(
         String nickname,
