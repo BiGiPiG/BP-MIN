@@ -9,6 +9,7 @@ import auth_service.entity.User;
 import auth_service.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,13 +20,13 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/signin")
-    public ResponseEntity<AuthResponse> signin(@RequestBody SigninRequest signinRequest) {
+    public ResponseEntity<AuthResponse> signin(@RequestBody @Validated SigninRequest signinRequest) {
         AuthResponse authResponse = authService.signin(signinRequest);
         return ResponseEntity.ok().body(authResponse);
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<SignupResponse> signup(@RequestBody SignupRequest signupRequest) {
+    public ResponseEntity<SignupResponse> signup(@RequestBody @Validated SignupRequest signupRequest) {
         User user = authService.signup(signupRequest);
 
         SignupResponse response = SignupResponse.builder()
@@ -39,7 +40,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody @Validated RefreshTokenRequest refreshTokenRequest) {
         AuthResponse authResponse = authService.refreshToken(refreshTokenRequest.refreshToken());
         return ResponseEntity.ok().body(authResponse);
     }
