@@ -34,20 +34,12 @@ public class AuthService {
 
     public User signup(SignupRequest signupRequest) {
 
-        if (signupRequest.username() == null || userService.existsByUsername(signupRequest.username())) {
+        if (userService.existsByUsername(signupRequest.username())) {
             throw new RuntimeException("Username is already in use");
         }
 
-        if (signupRequest.email() == null || userService.existsByEmail(signupRequest.email())) {
+        if (userService.existsByEmail(signupRequest.email())) {
             throw new RuntimeException("Email is already in use");
-        }
-
-        if (signupRequest.password() == null || signupRequest.password().length() < 6) {
-            throw new RuntimeException("Password is too short");
-        }
-
-        if (signupRequest.nickname() == null) {
-            throw new RuntimeException("Nickname is required");
         }
 
         String encodedPassword = passwordEncoder.encode(signupRequest.password());
