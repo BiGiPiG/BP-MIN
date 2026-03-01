@@ -4,7 +4,11 @@ import auth_service.dto.request.SigninRequest;
 import auth_service.dto.request.SignupRequest;
 import auth_service.dto.response.AuthResponse;
 import auth_service.entity.User;
+import auth_service.exception.InvalidEmailException;
+import auth_service.exception.InvalidRefreshTokenException;
+import auth_service.exception.InvalidUsernameException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -12,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -35,11 +40,13 @@ public class AuthService {
     public User signup(SignupRequest signupRequest) {
 
         if (userService.existsByUsername(signupRequest.username())) {
-            throw new RuntimeException("Username is already in use");
+            log.warn("Username {} already exists", signupRequest.username());
+            throw new InvalidUsernameException("Username is already in use");
         }
 
         if (userService.existsByEmail(signupRequest.email())) {
-            throw new RuntimeException("Email is already in use");
+            log.warn("Email {} already exists", signupRequest.email());
+            throw new InvalidEmailException("Email is already in use");
         }
 
         String encodedPassword = passwordEncoder.encode(signupRequest.password());
@@ -58,13 +65,15 @@ public class AuthService {
         String username = jwtService.extractUsername(refreshToken);
 
         if (username == null) {
-            throw new RuntimeException("Invalid refresh token");
+            log.warn("Username not extracted from token {}", refreshToken);
+            throw new InvalidRefreshTokenException("Invalid refresh token");
         }
 
         User curUser = (User) userDetailsService.loadUserByUsername(username);
 
         if (!jwtService.isValid(refreshToken, curUser)) {
-            throw new RuntimeException("Invalid refresh token");
+            log.warn("Invalid refresh token {}", refreshToken);
+            throw new InvalidRefreshTokenException("Invalid refresh token");
         }
 
         return generateTokens(curUser);
