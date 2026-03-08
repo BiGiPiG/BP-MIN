@@ -1,6 +1,9 @@
 package auth_service.exception;
 
 import auth_service.dto.response.ErrorResponse;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +52,27 @@ public class GlobalExceptionHandler {
         ErrorResponse response = ErrorResponse.of(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Invalid username or password");
         log.warn(ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredJwtException(ExpiredJwtException ex) {
+        ErrorResponse response = ErrorResponse.of(HttpStatus.UNAUTHORIZED, "TOKEN_EXPIRED", "Token has expired");
+        log.warn(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    @ExceptionHandler(MalformedJwtException.class)
+    public ResponseEntity<ErrorResponse> handleException(MalformedJwtException ex) {
+        ErrorResponse response = ErrorResponse.of(HttpStatus.BAD_REQUEST, "TOKEN_MALFORMED", "Invalid token format");
+        log.warn("error {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(SignatureException.class)
+    public ResponseEntity<ErrorResponse> handleException(SignatureException ex) {
+        ErrorResponse response = ErrorResponse.of(HttpStatus.BAD_REQUEST, "TOKEN_MALFORMED", "Invalid token format");
+        log.warn(ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(Exception.class)

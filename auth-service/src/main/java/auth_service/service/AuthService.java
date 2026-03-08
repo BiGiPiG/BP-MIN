@@ -23,8 +23,8 @@ public class AuthService {
 
     private final JwtService jwtService;
     private final UserService userService;
-    private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private final PasswordEncoder passwordEncoder;
     private final UserDetailsService userDetailsService;
 
     public AuthResponse signin(SigninRequest signinRequest) {
