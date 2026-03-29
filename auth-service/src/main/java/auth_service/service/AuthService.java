@@ -1,5 +1,6 @@
 package auth_service.service;
 
+import auth_service.dto.events.UserCreatedEvent;
 import auth_service.dto.request.SigninRequest;
 import auth_service.dto.request.SignupRequest;
 import auth_service.dto.response.AuthResponse;
@@ -9,6 +10,7 @@ import auth_service.exception.InvalidRefreshTokenException;
 import auth_service.exception.InvalidUsernameException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,6 +28,8 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final UserDetailsService userDetailsService;
+    private final KafkaTemplate<Long, Object> kafkaTemplate;
+    private static final String KAFKA_TOPIC = "user-created-event-topic";
 
     public AuthResponse signin(SigninRequest signinRequest) {
         Authentication authentication = authenticationManager
@@ -58,6 +62,17 @@ public class AuthService {
                 .password(encodedPassword)
                 .build();
 
+        User savedUser = userService.save(newUser);
+
+        UserCreatedEvent event = UserCreatedEvent.newBuilder()
+                .setEmail(savedUser.getEmail())
+                .setNickname(savedUser.getNickname())
+                .setUsername(savedUser.getUsername())
+                .setId(savedUser.getId())
+                .build();
+
+        kafkaTemplate.send(KAFKA_TOPIC, savedUser.getId(), event);
+
         return userService.save(newUser);
     }
 
@@ -69,13 +84,12 @@ public class AuthService {
             throw new InvalidRefreshTokenException("Invalid refresh token");
         }
 
-        User curUser = (User) userDetailsService.loadUserByUsername(username);
-
-        if (!jwtService.isValid(refreshToken, curUser)) {
+        if (!jwtService.isValid(refreshToken)) {
             log.warn("Invalid refresh token {}", refreshToken);
             throw new InvalidRefreshTokenException("Invalid refresh token");
         }
 
+        User curUser = (User) userDetailsService.loadUserByUsername(username);
         return generateTokens(curUser);
     }
 

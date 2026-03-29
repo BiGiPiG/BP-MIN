@@ -23,3 +23,8 @@ server/target/
 #Client
 client/README.md
 client/.vscode
+
+.env
+*mvnw
+*mvnw.cmd
+

@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException ex) {
         ErrorResponse response = ErrorResponse.of(HttpStatus.UNAUTHORIZED, "AUTH_FAILED", "Invalid username or password");
-        log.warn(ex.getMessage());
+        log.warn("auth {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
@@ -62,14 +62,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MalformedJwtException.class)
-    public ResponseEntity<ErrorResponse> handleException(MalformedJwtException ex) {
+    public ResponseEntity<ErrorResponse> handleMalformedJwtException(MalformedJwtException ex) {
         ErrorResponse response = ErrorResponse.of(HttpStatus.BAD_REQUEST, "TOKEN_MALFORMED", "Invalid token format");
         log.warn("error {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(SignatureException.class)
-    public ResponseEntity<ErrorResponse> handleException(SignatureException ex) {
+    public ResponseEntity<ErrorResponse> handleSignatureException(SignatureException ex) {
         ErrorResponse response = ErrorResponse.of(HttpStatus.BAD_REQUEST, "TOKEN_MALFORMED", "Invalid token format");
         log.warn(ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);

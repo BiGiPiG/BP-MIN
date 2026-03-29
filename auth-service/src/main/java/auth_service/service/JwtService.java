@@ -4,7 +4,6 @@ import auth_service.entity.User;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -14,23 +13,24 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
-@RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${security.jwt.secret_key}")
-    private String secretKey;
-
-    @Value("${security.jwt.access_token_expiration}")
-    private long accessTokenExpiration;
-
-    @Value("${security.jwt.refresh_token_expiration}")
-    private long refreshTokenExpiration;
-
+    private final SecretKey signingKey;
+    private final long accessTokenExpiration;
+    private final long refreshTokenExpiration;
     private final String ISSUER = "bp-min";
 
-    private SecretKey getSigningKey() {
+    public JwtService(@Value("${security.jwt.secret_key}") String secretKey,
+                      @Value("${security.jwt.access_token_expiration}") long accessTokenExpiration,
+                      @Value("${security.jwt.refresh_token_expiration}") long refreshTokenExpiration) {
         byte[] keyBytes = Decoders.BASE64URL.decode(secretKey);
-        return Keys.hmacShaKeyFor(keyBytes);
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+        this.accessTokenExpiration = accessTokenExpiration;
+        this.refreshTokenExpiration = refreshTokenExpiration;
+    }
+
+    private SecretKey getSigningKey() {
+        return this.signingKey;
     }
 
     private String generateToken(User user, long expiryTime) {
@@ -40,7 +40,7 @@ public class JwtService {
                 .issuer(ISSUER)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + expiryTime))
-                .signWith(getSigningKey()).compact();
+                .signWith(getSigningKey(), Jwts.SIG.HS384).compact();
     }
 
     public String generateAccessToken(User user) {
@@ -52,9 +52,10 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        JwtParserBuilder parser = Jwts.parser();
-        parser.verifyWith(getSigningKey());
-        return parser.build()
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .requireIssuer(ISSUER)
+                .build()
                 .parseSignedClaims(token)
                 .getPayload();
     }
@@ -68,22 +69,8 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
-    public String extractIssuer(String token) {
-        return extractClaim(token, Claims::getIssuer);
-    }
-
-    private boolean isTokenNotExpired(String token) {
-        return !extractExpiration(token).before(new Date());
-    }
-
-    public boolean isValid(String token, User user) {
-        String username = extractUsername(token);
-        return username.equals(user.getUsername())
-                && isTokenNotExpired(token)
-                && ISSUER.equals(extractIssuer(token));
+    public boolean isValid(String token) {
+        extractAllClaims(token);
+        return true;
     }
 }

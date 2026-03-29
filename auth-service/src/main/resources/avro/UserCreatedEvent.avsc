@@ -1,0 +1,23 @@
+{
+  "namespace": "auth_service.dto.events",
+  "type": "record",
+  "name": "UserCreatedEvent",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long"
+    },
+    {
+      "name": "nickname",
+      "type": "string"
+    },
+    {
+      "name": "username",
+      "type": "string"
+    },
+    {
+      "name": "email",
+      "type": "string"
+    }
+  ]
+}

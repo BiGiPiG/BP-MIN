@@ -1,0 +1,39 @@
+package io.github.bigpig.userservice.controllers;
+
+import io.github.bigpig.userservice.dto.respose.InterlocutorInfoDto;
+import io.github.bigpig.userservice.dto.respose.ProfileDto;
+import io.github.bigpig.userservice.services.ProfileService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/profiles")
+public class ProfileController {
+
+    private final ProfileService profileService;
+
+    @GetMapping("/{username}")
+    public ResponseEntity<ProfileDto> getProfile(@PathVariable String username) {
+        log.info("Fetching public profile for username: {}", username);
+        ProfileDto profile = profileService.getProfileByUsername(username);
+        return ResponseEntity.ok(profile);
+    }
+
+    @GetMapping("/interlocutor-info/{username}")
+    public ResponseEntity<InterlocutorInfoDto> getInterlocutorInfo(@PathVariable String username) {
+        log.info("Fetching interlocutor info for username: {}", username);
+        InterlocutorInfoDto interlocutor = profileService.getInterlocutorInfo(username);
+        return ResponseEntity.ok(interlocutor);
+    }
+
+    @PutMapping("/{username}")
+    public ResponseEntity<ProfileDto> updateUserProfile(@PathVariable String username, @RequestBody ProfileDto profileDto) {
+        log.info("Updating profile for user : {}", username);
+        ProfileDto newProfile = profileService.updateProfile(profileDto);
+        return ResponseEntity.ok(newProfile);
+    }
+}

@@ -1,0 +1,92 @@
+services:
+  api-gateway:
+    build: ./cloud-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      AUTH_SERVICE_PATH: http://auth-service:9001
+      CHAT_SERVICE_PATH: http://chat-service:9002
+    networks:
+      - bp-min
+
+  broker:
+    image: apache/kafka:latest
+    container_name: broker
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@broker:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+    networks:
+      - bp-min
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:latest
+    depends_on:
+      broker:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://broker:9092
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_TIMEOUT_MS: "10000"
+      SCHEMA_REGISTRY_KAFKASTORE_TIMEOUT_MS: "10000"
+      SCHEMA_REGISTRY_DEBUG: "true"
+    networks:
+      - bp-min
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8081/ >/dev/null 2>&1 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      - BOOTSTRAP_SERVERS=broker:9092
+      - REGISTRY_URL=http://schema-registry:8081
+    networks:
+      - bp-min
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+
+  chat-service:
+    build: ./chat-service
+    networks:
+      - bp-min
+
+  user-service:
+    build: ./user-service
+    environment:
+      - BOOTSTRAP_SERVERS=broker:9092
+      - REGISTRY_URL=http://schema-registry:8081
+      - CONSUMER_GROUP_ID=user-service-group
+      - CHAT_SERVICE_PATH=http://chat-serivce:9001
+    networks:
+      - bp-min
+    depends_on:
+      schema-registry:
+        condition: service_healthy
+
+networks:
+  bp-min:
+    driver: bridge

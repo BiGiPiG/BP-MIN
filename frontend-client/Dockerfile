@@ -7,4 +7,4 @@ RUN npm ci && npm cache clean --force
 
 COPY . .
 
-CMD ["npm", "run", "dev"]
+ENTRYPOINT ["npm", "run", "dev"]
