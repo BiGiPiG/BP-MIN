@@ -1,6 +1,7 @@
 package io.github.bigpig.chatservice.service;
 
 import io.github.bigpig.chatservice.dto.ParticipantInfo;
+import io.github.bigpig.chatservice.dto.events.ChatCreatedEvent;
 import io.github.bigpig.chatservice.dto.request.CreateChatRequest;
 import io.github.bigpig.chatservice.dto.response.ChatDto;
 import io.github.bigpig.chatservice.dto.response.MessageDto;
@@ -11,15 +12,18 @@ import io.github.bigpig.chatservice.exception.ChatNotFoundException;
 import io.github.bigpig.chatservice.repository.ChatRepository;
 import io.github.bigpig.chatservice.utils.MessageMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatService {
 
+    private final ApplicationEventPublisher eventPublisher;
     private final UserServiceClient userServiceClient;
     private final ChatRepository chatRepository;
     private final ChatParticipantService chatParticipantService;
@@ -34,7 +38,7 @@ public class ChatService {
         List<Chat> chats = participants.stream().map(ChatParticipant::getChat).toList();
         List<Long> participantIds = getActiveParticipantIds(chats);
 
-        Map<Long, ParticipantInfo> participantInfos = userServiceClient.fetchParticipantInfos(participantIds);
+        Map<Long, ParticipantInfo> participantInfos = userServiceClient.fetchParticipantInfosMap(participantIds);
         return getChatsDto(chats, participantInfos);
     }
 
@@ -42,13 +46,18 @@ public class ChatService {
         return chatRepository.findById(chatId);
     }
 
-    public void createChat(CreateChatRequest chatDto) {
-        Chat chat = new Chat(chatDto.type(), chatDto.title());
-        for (long userId : chatDto.participantIds()) {
+    public ChatDto createChat(CreateChatRequest request) {
+        Chat chat = new Chat(request.type(), request.title());
+        for (long userId : request.participantIds()) {
             ChatParticipant newChatParticipant = new ChatParticipant(chat, userId);
             chat.addParticipant(newChatParticipant);
         }
-        chatRepository.save(chat);
+
+        chat = chatRepository.save(chat);
+        eventPublisher.publishEvent(new ChatCreatedEvent(this, chat, request.participantIds()));
+
+        List<ParticipantInfo> participantInfos = userServiceClient.fetchParticipantInfosList(request.participantIds());
+        return createChatDto(chat, participantInfos);
     }
 
     public List<MessageDto> getHistory(long chatId, long userId) {
@@ -91,7 +100,7 @@ public class ChatService {
         return chatDtos;
     }
 
-    private ChatDto createChatDto(Chat chat, List<ParticipantInfo> infos) {
+    public  ChatDto createChatDto(Chat chat, List<ParticipantInfo> infos) {
         return ChatDto.builder()
                 .id(chat.getId())
                 .type(chat.getType())

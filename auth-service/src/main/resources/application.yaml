@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: auth-service
   datasource:
@@ -6,18 +8,41 @@ spring:
     driver-class-name: org.h2.Driver
     username: sa
     password: password
+  flyway:
+    enabled: true
+    locations: classpath:db/migrations
+  sql:
+    init:
+      mode: never
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
+    open-in-view: false
+
+  kafka:
+    bootstrap-servers: ${BOOTSTRAP_SERVERS:localhost:9093}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+          schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+          auto.register.schemas: true
+    admin:
+      auto-create: true
 
 security:
   jwt:
-    secret_key: YOUR_SECRET_KEY
-    access_token_expiration: 30000000 # 30 seconds
-    refresh_token_expiration: 252000000 # 7 days
+    secret_key: ${JWT_SECRET_KEY:4eeab38d706831be4b36612ead768ef8182d1dd6f0e14e5dc934652e297fb16a}
+    access_token_expiration: 30000000
+    refresh_token_expiration: 252000000
 
 server:
   port: 9001
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true

@@ -43,7 +43,7 @@ const statusText = computed(() => {
   }
   console.log(props.interlocutorStatus)
   console.log(statusMap[props.interlocutorStatus])
-  return statusMap[props.interlocutorStatus] || 'offline'
+  return statusMap[props.interlocutorStatus.toUpperCase()] || 'offline'
 })
 </script>
 

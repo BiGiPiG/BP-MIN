@@ -6,6 +6,7 @@ import io.github.bigpig.chatservice.dto.response.MessageDto;
 import io.github.bigpig.chatservice.service.ChatService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,8 +28,8 @@ public class ChatController {
     @PostMapping("/create")
     public ResponseEntity<ChatDto> createChat(@RequestBody CreateChatRequest requestDto) {
         log.info("Create chat: {}", requestDto);
-        chatService.createChat(requestDto);
-        return null;
+        ChatDto newChat = chatService.createChat(requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newChat);
     }
 
     @GetMapping("/history/{chatId}")

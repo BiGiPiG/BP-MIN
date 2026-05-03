@@ -1,0 +1,40 @@
+server:
+  port: 9003
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: jdbc:h2:mem:userdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+
+  flyway:
+    locations: classpath:db/migrations
+    enabled: true
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false
+
+  kafka:
+    bootstrap-servers: ${BOOTSTRAP_SERVERS:localhost:9093}
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:user-service-group}
+      auto-offset-reset: earliest
+      properties:
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
+        specific.avro.reader: true

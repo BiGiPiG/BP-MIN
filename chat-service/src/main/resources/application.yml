@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: chat-service
+  datasource:
+    url: jdbc:h2:mem:chatdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+  flyway:
+    enabled: true
+    locations: classpath:db/migrations
+  kafka:
+    bootstrap-servers: ${BOOTSTRAP_SERVERS:localhost:9093}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.LongSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: ${REGISTRY_URL:http://localhost:8081}
+        auto.register.schemas: true
+    admin:
+      auto-create: true
+
+server:
+  port: 9002
+
+kafka:
+  address: ${BOOTSTRAP_SERVERS:localhost:9093}
+
+schema:
+  registry:
+    url: ${REGISTRY_URL:http://localhost:8081}
+
+security:
+  jwt:
+    secret_key: ${JWT_SECRET_KEY:4eeab38d706831be4b36612ead768ef8182d1dd6f0e14e5dc934652e297fb16a}
+
+user:
+  service:
+    base-url: http://localhost:9003

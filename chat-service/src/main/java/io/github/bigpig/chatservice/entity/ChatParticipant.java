@@ -23,6 +23,7 @@ public class ChatParticipant {
     @JoinColumn(name = "chat_id", nullable = false)
     private Chat chat;
 
+    @Column(name = "user_id")
     private Long userId;
 
     @Column(name = "joined_at")

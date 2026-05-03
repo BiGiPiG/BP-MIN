@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1.4  ← обязательно для работы кэша!
+FROM maven:3.9.9 AS builder
+
+WORKDIR /app
+COPY pom.xml ./
+COPY ./src ./src/
+
+# 1. Скачиваем зависимости (сохраняются в кэше Docker)
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn dependency:go-offline -B
+
+# 2. Собираем проект (зависимости берутся из кэша)
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn clean package -DskipTests -B
+
+FROM eclipse-temurin:21-jre-alpine AS runner
+
+WORKDIR /app
+COPY --from=builder /app/target/*.jar app.jar
+
+EXPOSE 9002
+ENTRYPOINT ["java", "-jar", "app.jar"]

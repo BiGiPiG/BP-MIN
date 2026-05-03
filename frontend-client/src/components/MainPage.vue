@@ -23,6 +23,7 @@ const activeChat = ref(null)
 const activeChatSubscriptions = ref([])
 const interlocutor = ref('')
 const interlocutorStatus = ref('')
+const activeInterlocutorId = ref('')
 
 // Composable
 const { chats, loading, error, fetchChats, createChat } = useChats()
@@ -65,11 +66,12 @@ const handleNewChat = (newChat) => {
 }
 
 const initializeWebSocket = async (token) => {
-  const username = localStorage.getItem('username')
+  // const username = localStorage.getItem('username')
+  const userId = localStorage.getItem("userId")
   const connectHeaders = { Authorization: `Bearer ${token}` }
 
-  await connect('ws://localhost:8080/chats', connectHeaders, () => {
-    subscribe(`/topic/user/${username}/chats`, handleNewChat)
+  await connect('ws://localhost:9002/handshake', connectHeaders, () => {
+    subscribe(`/topic/user/${userId}/chats`, handleNewChat)
 
     const chatList = Array.isArray(chats.value) ? chats.value : []
     if (chatList.length > 0) {
@@ -161,7 +163,8 @@ const handleReturnToList = () => {
   activeChat.value = null
 }
 
-const handleSearchUser = (interlocutorUsername, interlocutorNickname) => {
+const handleSearchUser = (interlocutorUsername, interlocutorNickname, interlocutorId) => {
+  console.log('🔍 handleSearchUser called:', { interlocutorUsername, interlocutorNickname })
   if (!interlocutorUsername?.trim()) {
     return
   }
@@ -178,6 +181,7 @@ const handleSearchUser = (interlocutorUsername, interlocutorNickname) => {
   } else {
     activeChat.value = null
   }
+  activeInterlocutorId.value = interlocutorId
   activeChatName.value = interlocutorNickname
 }
 
@@ -192,7 +196,7 @@ const sendMessage = async (content) => {
     activeChat.value = await createChat({
       type: 'DIRECT',
       title: null,
-      participants: [username, interlocutor.value]
+      participantIds: [userId, activeInterlocutorId.value]
     })
 
     if (activeChat.value?.id) {
@@ -211,8 +215,6 @@ const sendMessage = async (content) => {
         )
       })
       subscribe(`/topic/chat/${activeChat.value.id}/status`, (payload) => {
-        console.log(payload.status)
-        console.log(payload.username)
         if (activeChatName.value === payload.nickname) {
             interlocutorStatus.value = payload.status
         }

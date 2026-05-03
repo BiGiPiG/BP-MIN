@@ -25,7 +25,7 @@ public class WebSocketConnectionListener {
             return;
         }
         log.info("Connection established.");
-        presenceService.changePresence(user.getId(), "ONLINE");
+
     }
 
     @EventListener

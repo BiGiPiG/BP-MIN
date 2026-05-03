@@ -12,6 +12,8 @@ public class GatewayConfig {
     private String AUTH_SERVICE_PATH;
     @Value("${chat.service.path}")
     private String CHAT_SERVICE_PATH;
+    @Value("${user.service.path}")
+    private String USER_SERVICE_PATH;
 
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
@@ -44,6 +46,25 @@ public class GatewayConfig {
                         .path("/api/chats")
                         .filters(f -> f.stripPrefix(2))
                         .uri(CHAT_SERVICE_PATH))
+
+                //user-service
+                .route(p -> p
+                        .path("/api/profiles/{username}")
+                        .filters(f -> f.stripPrefix(2))
+                        .uri(USER_SERVICE_PATH))
+                .route(p -> p
+                        .path("/api/profiles/interlocutor-info/{username}")
+                        .filters(f -> f.stripPrefix(2))
+                        .uri(USER_SERVICE_PATH))
+                .route(p -> p
+                        .path("/api/profiles/{username}")
+                        .filters(f -> f.stripPrefix(2))
+                        .uri(USER_SERVICE_PATH))
+                .route(p -> p
+                        .path("/api/users/search")
+                        .filters(f -> f.stripPrefix(2))
+                        .uri(USER_SERVICE_PATH))
                 .build();
+
     }
 }

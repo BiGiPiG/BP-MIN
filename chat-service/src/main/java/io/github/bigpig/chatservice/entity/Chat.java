@@ -21,7 +21,7 @@ public class Chat {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "type", nullable = false)
     private ChatType type;
 
     @Column(name = "title")

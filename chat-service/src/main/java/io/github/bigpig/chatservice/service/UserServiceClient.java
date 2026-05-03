@@ -3,6 +3,7 @@ package io.github.bigpig.chatservice.service;
 import io.github.bigpig.chatservice.dto.ParticipantInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ public class UserServiceClient {
 
     private final RestClient restClient;
 
-    public Map<Long, ParticipantInfo> fetchParticipantInfos(List<Long> participantIds) {
+    public Map<Long, ParticipantInfo> fetchParticipantInfosMap(List<Long> participantIds) {
         if (participantIds.isEmpty()) {
             return Map.of();
         }
@@ -28,7 +29,7 @@ public class UserServiceClient {
         try {
             List<ParticipantInfo> infos = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/users")
+                            .path("/users/participant-infos")
                             .queryParam("userIds", participantIds)
                             .build())
                     .retrieve()
@@ -47,6 +48,36 @@ public class UserServiceClient {
         } catch (Exception e) {
             log.error("Error calling user-service", e);
             return Map.of();
+        }
+    }
+
+    public List<ParticipantInfo> fetchParticipantInfosList(List<Long> participantIds) {
+        if (participantIds.isEmpty()) {
+            return List.of();
+        }
+
+        try {
+            List<ParticipantInfo> infos = restClient.get()
+                    .uri(uriBuilder -> uriBuilder
+                            .path("/users/participant-infos")
+                            .queryParam("userIds", participantIds)
+                            .build())
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                        log.warn("Failed to fetch users: {}", res.getStatusCode());
+                        throw new RuntimeException("User service error");
+                    })
+                    .body(new ParameterizedTypeReference<>() {});
+
+            if (infos == null) {
+                log.warn("User service returned null");
+                return List.of();
+            }
+
+            return infos;
+        } catch (Exception e) {
+            log.error("Error calling user-service", e);
+            return List.of();
         }
     }
 }

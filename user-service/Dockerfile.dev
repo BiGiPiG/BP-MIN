@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1.4
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
+WORKDIR /build
+COPY pom.xml .
+# Docker сам создаст и заполнит этот кэш при первом запуске
+RUN --mount=type=cache,target=/root/.m2 mvn dependency:go-offline -B
+COPY src ./src/
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -DskipTests -B
+
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=builder /build/target/*.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]

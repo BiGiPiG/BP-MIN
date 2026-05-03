@@ -63,6 +63,7 @@ public class MessageController {
         Long userId = (Long) Objects.requireNonNull(headerAccessor.getSessionAttributes()).get("userId");
         Long senderId = messageService.readMessage(readRequest.messageId(), userId);
         String destination = String.format("/topic/chat/%s/read/%s", readRequest.chatId(), senderId);
+        log.info("Sending read request for message ID: {} to {}", readRequest.messageId(), destination);
         messagingTemplate.convertAndSend(destination,
                 new MarkedReadMessageDto(readRequest.chatId(), readRequest.messageId()));
     }

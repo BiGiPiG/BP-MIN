@@ -88,7 +88,7 @@ const handleInput = (event) => {
 const selectUser = (user) => {
   searchQuery.value = ''
   searchResults.value = []
-  emit('user-selected', user.username, user.nickname)
+  emit('user-selected', user.username, user.nickname, user.id)
 }
 
 const clearSearch = () => {
