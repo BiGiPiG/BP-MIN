@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -37,5 +38,17 @@ public class ChatParticipant {
         this.userId = userId;
         this.joinedAt = LocalDateTime.now();
         this.leftAt = null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        ChatParticipant that = (ChatParticipant) o;
+        return Objects.equals(id, that.id) && Objects.equals(chat, that.chat) && Objects.equals(userId, that.userId) && Objects.equals(joinedAt, that.joinedAt) && Objects.equals(leftAt, that.leftAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, chat, userId, joinedAt, leftAt);
     }
 }

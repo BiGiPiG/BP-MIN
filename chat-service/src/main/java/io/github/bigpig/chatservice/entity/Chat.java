@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -50,6 +51,20 @@ public class Chat {
     public void addParticipant(ChatParticipant participant) {
         participants.add(participant);
         participant.setChat(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Chat chat = (Chat) o;
+        return Objects.equals(id, chat.id) && type == chat.type && Objects.equals(title, chat.title)
+                && Objects.equals(createdAt, chat.createdAt) && Objects.equals(updatedAt, chat.updatedAt)
+                && Objects.equals(participants, chat.participants) && Objects.equals(messages, chat.messages);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, type, title, createdAt, updatedAt, participants, messages);
     }
 
     @PreUpdate

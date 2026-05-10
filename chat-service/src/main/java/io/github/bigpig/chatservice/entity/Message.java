@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "messages")
@@ -43,6 +44,19 @@ public class Message {
         this.isRead = false;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Message message = (Message) o;
+        return Objects.equals(id, message.id) && Objects.equals(chat, message.chat)
+                && Objects.equals(chatParticipant, message.chatParticipant) && Objects.equals(content, message.content)
+                && Objects.equals(sentAt, message.sentAt) && Objects.equals(isRead, message.isRead);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, chat, chatParticipant, content, sentAt, isRead);
+    }
 
     public void read() {
         this.isRead = true;
