@@ -58,13 +58,12 @@ public class Chat {
         if (o == null || getClass() != o.getClass()) return false;
         Chat chat = (Chat) o;
         return Objects.equals(id, chat.id) && type == chat.type && Objects.equals(title, chat.title)
-                && Objects.equals(createdAt, chat.createdAt) && Objects.equals(updatedAt, chat.updatedAt)
-                && Objects.equals(participants, chat.participants) && Objects.equals(messages, chat.messages);
+                && Objects.equals(createdAt, chat.createdAt) && Objects.equals(updatedAt, chat.updatedAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, type, title, createdAt, updatedAt, participants, messages);
+        return Objects.hash(id, type, title, createdAt, updatedAt);
     }
 
     @PreUpdate

@@ -28,6 +28,7 @@ public class MessageService {
     private final Map<String, MessageChecker> messageCheckers;
 
 
+    @Transactional
     public MessageDto createMessage(MessageDto messageDto) {
         Chat chat = chatService.getChatById(messageDto.chatId())
                 .orElseThrow(() -> new ChatNotFoundException("Chat not found"));
@@ -39,7 +40,6 @@ public class MessageService {
         return messageMapper.toMessageDto(messageRepository.save(chatMessage));
     }
 
-    @Transactional
     public Long readMessage(Long messageId, Long editorId) {
         Message message = messageRepository.findById(messageId).orElseThrow(
                 () -> new MessageNotFoundException("Message not found")
