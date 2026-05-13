@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -73,11 +74,15 @@ public class MessageService {
 
     @Transactional
     public void deleteMessage(Long messageId, Long deleterId) {
-        Message message = messageRepository.findById(messageId).orElseThrow(
-                () -> new MessageNotFoundException("Message not found")
-        );
+        Optional<Message> message = messageRepository.findById(messageId);
 
-        if (messageCheckers.get("messageDeleteChecker").checkErrors(deleterId, message)) {
+        if (message.isEmpty()) {
+            return;
+        }
+
+        Message messageToDelete = message.get();
+
+        if (messageCheckers.get("messageDeleteChecker").checkErrors(deleterId, messageToDelete)) {
             throw new MessageAccessDeniedException("Access denied to delete");
         }
 
