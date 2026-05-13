@@ -1,9 +1,11 @@
 package io.github.bigpig.chatservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 
+@Builder
 public record MessageDto(
         Long id,                       // message ID
         Long chatId,                   // chat ID
