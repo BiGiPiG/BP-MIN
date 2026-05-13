@@ -3,7 +3,6 @@ package io.github.bigpig.chatservice.service;
 import io.github.bigpig.chatservice.dto.ParticipantInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
@@ -27,20 +26,8 @@ public class UserServiceClient {
         }
 
         try {
-            List<ParticipantInfo> infos = restClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/users/participant-infos")
-                            .queryParam("userIds", participantIds)
-                            .build())
-                    .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-                        log.warn("Failed to fetch users: {}", res.getStatusCode());
-                        throw new RuntimeException("User service error");
-                    })
-                    .body(new ParameterizedTypeReference<>() {});
-
+            List<ParticipantInfo> infos = fetchInfos(participantIds);
             if (infos == null) {
-                log.warn("User service returned null");
                 return Map.of();
             }
 
@@ -57,20 +44,8 @@ public class UserServiceClient {
         }
 
         try {
-            List<ParticipantInfo> infos = restClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/users/participant-infos")
-                            .queryParam("userIds", participantIds)
-                            .build())
-                    .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-                        log.warn("Failed to fetch users: {}", res.getStatusCode());
-                        throw new RuntimeException("User service error");
-                    })
-                    .body(new ParameterizedTypeReference<>() {});
-
+            List<ParticipantInfo> infos = fetchInfos(participantIds);
             if (infos == null) {
-                log.warn("User service returned null");
                 return List.of();
             }
 
@@ -79,5 +54,24 @@ public class UserServiceClient {
             log.error("Error calling user-service", e);
             return List.of();
         }
+    }
+
+    private List<ParticipantInfo> fetchInfos(List<Long> participantIds) {
+        List<ParticipantInfo> infos = restClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/users/participant-infos")
+                        .queryParam("userIds", participantIds)
+                        .build())
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
+                    log.warn("Failed to fetch users: {}", res.getStatusCode());
+                    throw new RuntimeException("User service error");
+                })
+                .body(new ParameterizedTypeReference<>() {});
+        if (infos == null) {
+            log.warn("User service returned null");
+        }
+
+        return infos;
     }
 }
