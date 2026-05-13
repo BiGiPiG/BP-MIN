@@ -12,14 +12,14 @@ public class MessageMapper {
     private final MessageTimeMapper messageTimeMapper;
 
     public MessageDto toMessageDto(Message message) {
-        return new MessageDto(
-                message.getId(),
-                message.getChat().getId(),
-                message.getChatParticipant().getUserId(),
-                message.getContent(),
-                message.getSentAt(),
-                messageTimeMapper.fullTimeToString(message.getSentAt()),
-                message.getIsRead()
-        );
+        return MessageDto.builder()
+                .id(message.getId())
+                .chatId(message.getChat().getId())
+                .senderId(message.getChatParticipant().getUserId())
+                .content(message.getContent())
+                .shortSentAt(message.getSentAt())
+                .fullSentAt(messageTimeMapper.fullTimeToString(message.getSentAt()))
+                .isRead(message.getIsRead())
+                .build();
     }
 }
