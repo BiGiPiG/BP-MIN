@@ -35,15 +35,11 @@ public class GatewayConfig {
 
                 //chat-service
                 .route(p -> p
-                        .path("/api/chats/create")
+                        .path("/api/chats")
                         .filters(f -> f.stripPrefix(2))
                         .uri(CHAT_SERVICE_PATH))
                 .route(p -> p
                         .path("/api/chats/history/{chatId}")
-                        .filters(f -> f.stripPrefix(2))
-                        .uri(CHAT_SERVICE_PATH))
-                .route(p -> p
-                        .path("/api/chats")
                         .filters(f -> f.stripPrefix(2))
                         .uri(CHAT_SERVICE_PATH))
 

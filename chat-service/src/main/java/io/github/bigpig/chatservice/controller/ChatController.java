@@ -25,7 +25,7 @@ public class ChatController {
         return ResponseEntity.ok().body(chatService.getChats(userId));
     }
 
-    @PostMapping("/create")
+    @PostMapping("/")
     public ResponseEntity<ChatDto> createChat(@RequestBody CreateChatRequest requestDto) {
         log.info("Create chat: {}", requestDto);
         ChatDto newChat = chatService.createChat(requestDto);
