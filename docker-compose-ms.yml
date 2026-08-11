@@ -5,8 +5,10 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      # Значения ниже перекрывают .env: внутри docker-сети адреса другие
       AUTH_SERVICE_PATH: http://auth-service:9001
       CHAT_SERVICE_PATH: http://chat-service:9002
       USER_SERVICE_PATH: http://user-service:9003
@@ -78,9 +80,11 @@ services:
 
   auth-service:
     build: ./auth-service
+    env_file:
+      - .env
     environment:
       - BOOTSTRAP_SERVERS=broker:9092
-      - REGISTRY_URL=http://schema-registry:8081
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
       - JAVA_TOOL_OPTIONS=-Xmx256m -Xms128m -XX:+UseContainerSupport
     networks:
       - bp-min
@@ -103,10 +107,12 @@ services:
         condition: service_healthy
     ports:
       - "9002:9002"
+    env_file:
+      - .env
     environment:
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - BOOTSTRAP_SERVERS=broker:9092
-      - REGISTRY_URL=http://schema-registry:8081
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - USER_SERVICE_PATH=http://user-service:9003
       - JAVA_TOOL_OPTIONS=-Xmx256m -Xms128m -XX:+UseContainerSupport
     deploy:
       resources:
@@ -117,10 +123,12 @@ services:
     build:
       context: ./user-service
       dockerfile: Dockerfile.dev
+    env_file:
+      - .env
     environment:
       - BOOTSTRAP_SERVERS=broker:9092
-      - REGISTRY_URL=http://schema-registry:8081
-      - CONSUMER_GROUP_ID=user-service-group
+      - SCHEMA_REGISTRY_URL=http://schema-registry:8081
+      - KAFKA_CONSUMER_GROUP_ID=user-service-group
       - CHAT_SERVICE_PATH=http://chat-service:9002
       - REDIS_HOST=redis
       - REDIS_PORT=6379

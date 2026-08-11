@@ -1,11 +1,15 @@
 spring:
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
   application:
     name: chat-service
   datasource:
-    url: jdbc:h2:mem:chatdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
+    url: ${CHAT_DB_URL:jdbc:h2:mem:chatdb}
+    driver-class-name: ${CHAT_DB_DRIVER:org.h2.Driver}
+    username: ${CHAT_DB_USER:sa}
+    password: ${CHAT_DB_PASSWORD:password}
   flyway:
     enabled: true
     locations: classpath:db/migrations
@@ -15,25 +19,25 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.LongSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: ${REGISTRY_URL:http://localhost:8081}
+        schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
         auto.register.schemas: true
     admin:
       auto-create: true
 
 server:
-  port: 9002
+  port: ${CHAT_SERVICE_PORT:9002}
 
 kafka:
   address: ${BOOTSTRAP_SERVERS:localhost:9093}
 
 schema:
   registry:
-    url: ${REGISTRY_URL:http://localhost:8081}
+    url: ${SCHEMA_REGISTRY_URL:http://localhost:8081}
 
 security:
   jwt:
-    secret_key: ${JWT_SECRET_KEY:4eeab38d706831be4b36612ead768ef8182d1dd6f0e14e5dc934652e297fb16a}
+    secret_key: ${JWT_SECRET_KEY}
 
 user:
   service:
-    base-url: http://localhost:9003
+    base-url: ${USER_SERVICE_PATH:http://localhost:9003}

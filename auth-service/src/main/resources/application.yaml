@@ -1,13 +1,17 @@
 spring:
+  config:
+    import:
+      - optional:file:./.env[.properties]
+      - optional:file:../.env[.properties]
   profiles:
     active: dev
   application:
     name: auth-service
   datasource:
-    url: jdbc:h2:mem:authdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
+    url: ${AUTH_DB_URL:jdbc:h2:mem:authdb}
+    driver-class-name: ${AUTH_DB_DRIVER:org.h2.Driver}
+    username: ${AUTH_DB_USER:sa}
+    password: ${AUTH_DB_PASSWORD:password}
   flyway:
     enabled: true
     locations: classpath:db/migrations
@@ -34,12 +38,12 @@ spring:
 
 security:
   jwt:
-    secret_key: ${JWT_SECRET_KEY:4eeab38d706831be4b36612ead768ef8182d1dd6f0e14e5dc934652e297fb16a}
-    access_token_expiration: 30000000
-    refresh_token_expiration: 252000000
+    secret_key: ${JWT_SECRET_KEY}
+    access_token_expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:30000000}
+    refresh_token_expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:252000000}
 
 server:
-  port: 9001
+  port: ${AUTH_SERVICE_PORT:9001}
 
 springdoc:
   api-docs:
