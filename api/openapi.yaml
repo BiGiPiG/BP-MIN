@@ -1,0 +1,573 @@
+openapi: 3.0.3
+
+info:
+  title: BP-MIN Public API
+  version: 1.0.0
+  description: |
+    Внешний REST-контракт мессенджера BP-MIN — то, что видит браузерный клиент.
+
+    Пути указаны так, как их вызывает клиент, то есть **до** маршрутизации
+    в api-gateway. Внутри gateway срезает префикс (StripPrefix=2), поэтому
+    в самих сервисах те же эндпоинты выглядят иначе: публичный
+    `POST /api/auth/signin` приходит в auth-service как `POST /signin`.
+    Спека описывает публичную поверхность, а не внутренние пути сервисов.
+
+    Real-time часть API (STOMP поверх WebSocket) сюда не входит —
+    OpenAPI её не описывает. См. `api/websocket.md`.
+
+servers:
+  - url: http://localhost:8080
+    description: Локальный api-gateway
+
+tags:
+  - name: auth
+    description: Регистрация, вход, обновление токенов (auth-service)
+  - name: chats
+    description: Чаты и история сообщений (chat-service)
+  - name: profiles
+    description: Профили пользователей (user-service)
+  - name: users
+    description: Поиск пользователей (user-service)
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /api/auth/signup:
+    post:
+      tags: [auth]
+      summary: Зарегистрировать пользователя
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '200':
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignupResponse'
+        '400':
+          description: |
+            Невалидные данные либо занятый username/email.
+            Коды: VALIDATION_FAILED, USERNAME_INVALID, EMAIL_INVALID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/signin:
+    post:
+      tags: [auth]
+      summary: Войти и получить пару токенов
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+      responses:
+        '200':
+          description: Пара токенов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: 'Невалидные данные. Код: VALIDATION_FAILED.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Неверный логин или пароль. Код: AUTH_FAILED.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Пользователь не найден. Код: USER_NOT_FOUND.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/refresh-token:
+    post:
+      tags: [auth]
+      summary: Обновить пару токенов по refresh-токену
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Новая пара токенов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: 'Испорченный токен. Код: TOKEN_MALFORMED.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 'Токен истёк или недействителен. Код: TOKEN_EXPIRED.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/chats:
+    get:
+      tags: [chats]
+      summary: Список чатов текущего пользователя
+      responses:
+        '200':
+          description: Чаты пользователя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Chat'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [chats]
+      summary: Создать чат
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '201':
+          description: Чат создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/chats/history/{chatId}:
+    get:
+      tags: [chats]
+      summary: История сообщений чата
+      description: |
+        Возвращает все сообщения чата без пагинации.
+        Пагинация запланирована как отдельное изменение контракта (v1.1).
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Сообщения чата в порядке отправки
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Пользователь не участник чата
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Чат не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/profiles/{username}:
+    get:
+      tags: [profiles]
+      summary: Профиль пользователя по username
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      responses:
+        '200':
+          description: Профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Профиль не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [profiles]
+      summary: Обновить собственный профиль
+      description: |
+        Обновляется профиль аутентифицированного пользователя.
+        `username` в пути используется только для построения URL и не позволяет
+        редактировать чужой профиль.
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          description: Обновлённый профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Попытка изменить чужой профиль
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/profiles/interlocutor-info/{username}:
+    get:
+      tags: [profiles]
+      summary: Карточка собеседника со статусом присутствия
+      parameters:
+        - $ref: '#/components/parameters/Username'
+      responses:
+        '200':
+          description: Данные собеседника
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterlocutorInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Профиль не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/search:
+    get:
+      tags: [users]
+      summary: Поиск пользователей по началу username
+      parameters:
+        - name: searchTerm
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          example: pig
+      responses:
+        '200':
+          description: Найденные пользователи
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access-токен, полученный из /api/auth/signin.
+
+  parameters:
+    Username:
+      name: username
+      in: path
+      required: true
+      schema:
+        type: string
+      example: pig
+
+  responses:
+    Unauthorized:
+      description: Отсутствует или недействителен access-токен
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+
+    GradientColor:
+      type: string
+      description: |
+        Цвет аватара. Сериализуется как CSS-градиент, а не как имя константы,
+        — на бэкенде это enum с @JsonValue.
+      enum:
+        - 'linear-gradient(135deg, #7e4aff 0%, #a78bfa 100%)'
+        - 'linear-gradient(135deg, #8b5cf6 0%, #c4b5fd 100%)'
+        - 'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)'
+        - 'linear-gradient(135deg, #d946ef 0%, #f0abfc 100%)'
+        - 'linear-gradient(135deg, #f97316 0%, #fdba74 100%)'
+        - 'linear-gradient(135deg, #ea580c 0%, #fed7aa 100%)'
+        - 'linear-gradient(135deg, #7e4aff 0%, #f97316 100%)'
+        - 'linear-gradient(135deg, #a855f7 0%, #ea580c 100%)'
+
+    ChatType:
+      type: string
+      enum: [DIRECT, GROUP]
+
+    SignupRequest:
+      type: object
+      required: [nickname, username, email, password]
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          example: Big
+        username:
+          type: string
+          minLength: 1
+          example: big
+        email:
+          type: string
+          format: email
+          example: big@gmail.com
+        password:
+          type: string
+          format: password
+          minLength: 6
+
+    SignupResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+          format: email
+
+    SigninRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          format: password
+          minLength: 6
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+          minLength: 1
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT. Полезные claims — sub (username) и userId.
+        refreshToken:
+          type: string
+
+    CreateChatRequest:
+      type: object
+      required: [type, participantIds]
+      properties:
+        type:
+          $ref: '#/components/schemas/ChatType'
+        title:
+          type: string
+          nullable: true
+          description: Для DIRECT может отсутствовать.
+        participantIds:
+          type: array
+          minItems: 1
+          items:
+            type: integer
+            format: int64
+
+    ParticipantInfo:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+        nickname:
+          type: string
+        username:
+          type: string
+        iconColor:
+          $ref: '#/components/schemas/GradientColor'
+
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/ChatType'
+        title:
+          type: string
+          nullable: true
+        lastActivity:
+          type: string
+          description: Дата последней активности чата.
+        lastMessagePreview:
+          type: string
+          nullable: true
+        unread:
+          type: boolean
+        participantInfo:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParticipantInfo'
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        chatId:
+          type: integer
+          format: int64
+        senderId:
+          type: integer
+          format: int64
+        content:
+          type: string
+        shortSentAt:
+          type: string
+          description: Время отправки в формате HH:mm.
+          example: '14:35'
+        fullSentAt:
+          type: string
+          description: Дата и время в человекочитаемом виде.
+          example: '14:35, August 26, 2026'
+        isRead:
+          type: boolean
+
+    Profile:
+      type: object
+      properties:
+        nickname:
+          type: string
+        username:
+          type: string
+        birthDate:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        profileColor:
+          $ref: '#/components/schemas/GradientColor'
+
+    InterlocutorInfo:
+      type: object
+      properties:
+        nickname:
+          type: string
+        username:
+          type: string
+        birthDate:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        profileColor:
+          $ref: '#/components/schemas/GradientColor'
+        status:
+          type: string
+          enum: [online, offline]
+
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: userId пользователя.
+        username:
+          type: string
+        nickname:
+          type: string
+
+    ErrorResponse:
+      type: object
+      description: Единый формат ошибки для всех сервисов.
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          description: Reason phrase HTTP-статуса.
+          example: Bad Request
+        code:
+          type: string
+          description: Машиночитаемый код ошибки.
+          enum:
+            - VALIDATION_FAILED
+            - USERNAME_INVALID
+            - EMAIL_INVALID
+            - AUTH_FAILED
+            - USER_NOT_FOUND
+            - TOKEN_EXPIRED
+            - TOKEN_MALFORMED
+            - INTERNAL_ERROR
+        details:
+          description: |
+            Строка с описанием либо объект "поле -> сообщение"
+            для VALIDATION_FAILED.
+          oneOf:
+            - type: string
+            - type: object
+              additionalProperties:
+                type: string

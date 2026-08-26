@@ -3,6 +3,7 @@ import LoginPage from "@/components/LoginPage.vue";
 import MainPage from "@/components/MainPage.vue";
 import { isTokenExpired } from "@/utils/jwtUtils.js";
 import { useStomp } from "@/utils/useStomp.js";
+import { authApi } from "@/api";
 
 const {
   connect
@@ -58,32 +59,17 @@ router.beforeEach(async (to, from, next) => {
     return next();
   }
 
-  console.log("refreshing")
-  const response = await fetch('/api/auth/refresh_token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      refreshToken
-    })
-  });
+  try {
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      await authApi.refreshTokens(refreshToken);
 
-  if (!response.ok) {
-    console.error("Refresh failed");
+    localStorage.setItem('accessToken', newAccessToken);
+    localStorage.setItem('refreshToken', newRefreshToken);
+  } catch (error) {
+    console.error('Refresh failed:', error);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    next({ name: 'Login' });
-    return;
-  }
-
-  try {
-    const data = await response.json();
-    localStorage.setItem('accessToken', data.accessToken);
-    localStorage.setItem('refreshToken', data.refreshToken);
-  } catch(error) {
-    console.error('Missing tokens in response:', error);
-    next({ name: 'Login' });
+    return next({ name: 'Login' });
   }
 
   next();

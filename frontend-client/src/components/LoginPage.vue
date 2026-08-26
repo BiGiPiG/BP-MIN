@@ -1,6 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { authApi, ApiError } from '@/api'
 
 const router = useRouter()
 
@@ -59,36 +60,34 @@ const handleSignin = async () => {
   }
 
   try {
-    const response = await fetch('/api/auth/signin', {
-      method: 'POST',
-      body: JSON.stringify({
-        username: username.value,
-        password: password.value
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    const data = await authApi.signin({
+      username: username.value,
+      password: password.value
     })
 
-    if (response.ok) {
-      const data = await response.json()
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
+    localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
 
-      const payload = parseJwt(data.accessToken)
-      const storedUsername = payload?.sub
-      const userId = payload?.userId
+    const payload = parseJwt(data.accessToken)
+    const storedUsername = payload?.sub
+    const userId = payload?.userId
 
-      if (storedUsername) {
-        localStorage.setItem('username', storedUsername)
-        localStorage.setItem('userId', userId)
-        await router.push(`/bp-min/${storedUsername}`)
-      }
-    } else {
-      const errorData = await response.json().catch(() => ({}))
-      passwordError.value = errorData.message || 'Invalid username or password'
+    if (storedUsername) {
+      localStorage.setItem('username', storedUsername)
+      localStorage.setItem('userId', userId)
+      await router.push(`/bp-min/${storedUsername}`)
     }
   } catch (error) {
+    if (error instanceof ApiError) {
+      passwordError.value =
+        error.fieldError('password') ||
+        error.fieldError('username') ||
+        (error.code === 'AUTH_FAILED' || error.code === 'USER_NOT_FOUND'
+          ? 'Invalid username or password'
+          : error.message)
+      return
+    }
+
     console.error('Network error:', error)
     passwordError.value = 'Connection failed. Please try again.'
   }
@@ -111,33 +110,32 @@ const handleSignup = async () => {
   }
 
   try {
-    const response = await fetch('/api/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify({
-        nickname: nickname.value,
-        username: username.value,
-        email: email.value,
-        password: password.value
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    await authApi.signup({
+      nickname: nickname.value,
+      username: username.value,
+      email: email.value,
+      password: password.value
     })
 
-    const data = await response.json()
-
-    if (!response.ok) {
-      if (data.errorCode === 'USERNAME_ALREADY_EXISTS') {
-        usernameError.value = 'Username is already taken'
-      } else if (data.errorCode === 'EMAIL_ALREADY_EXISTS') {
-        emailError.value = 'Email is already taken'
-      } else {
-        passwordError.value = data.message || 'Registration failed'
-      }
-    } else {
-      toggleForm()
-    }
+    toggleForm()
   } catch (error) {
+    if (error instanceof ApiError) {
+      // Коды из ErrorResponse, см. api/openapi.yaml
+      if (error.code === 'USERNAME_INVALID') {
+        usernameError.value = 'Username is already taken'
+      } else if (error.code === 'EMAIL_INVALID') {
+        emailError.value = 'Email is already taken'
+      } else if (error.code === 'VALIDATION_FAILED') {
+        usernameError.value = error.fieldError('username') || ''
+        emailError.value = error.fieldError('email') || ''
+        passwordError.value =
+          error.fieldError('password') || error.fieldError('nickname') || ''
+      } else {
+        passwordError.value = error.message || 'Registration failed'
+      }
+      return
+    }
+
     console.error('Network error:', error)
     passwordError.value = 'Connection failed. Please try again.'
   }

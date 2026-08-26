@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useMessageStore } from '@/utils/useMessages'
+import { profilesApi } from '@/api'
 import ConversationPlaceholder from "@/components/conversation/ConversationPlaceholder.vue";
 import ConversationHeader from "@/components/conversation/ConversationHeader.vue";
 import MessageList from "@/components/conversation/MessageList.vue";
@@ -66,16 +67,7 @@ const loadInterlocutorProfile = async () => {
   }
 
   try {
-    const res = await fetch(`/api/profiles/interlocutor-info/${props.currentInterlocutor}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!res.ok) throw new Error('Failed to load profile')
-
-    const data = await res.json()
+    const data = await profilesApi.getInterlocutorInfo(props.currentInterlocutor)
     interlocutorProfile.value = data
 
     if (data.status) {

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { profilesApi } from '@/api'
 
 // ─────────────────────────────────────
 // Setup
@@ -47,20 +48,7 @@ const profileInitial = computed(() => {
 
 onMounted(async () => {
   try {
-    const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log(data)
+    const data = await profilesApi.getProfile(localStorage.getItem('username'))
 
     profileData.value = {
       username: data.username || '',
@@ -100,26 +88,7 @@ const saveChanges = async () => {
   console.log('Отправляемые данные:', requestBody)
 
   try {
-    const response = await fetch(`/api/profiles/${localStorage.getItem('username')}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(requestBody)
-    })
-
-    console.log('Статус ответа:', response.status)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Ошибка HTTP:', response.status, errorText)
-      alert(`Ошибка при сохранении: ${response.status}`)
-      return
-    }
-
-    const responseData = await response.json()
-    console.log('Успешный ответ:', responseData)
+    await profilesApi.updateProfile(localStorage.getItem('username'), requestBody)
 
     initialData = { ...profileData.value }
     alert('Профиль успешно сохранён!')

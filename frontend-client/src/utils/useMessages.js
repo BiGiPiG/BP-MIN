@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { chatsApi } from '@/api'
 
 export const useMessageStore = defineStore('messages', {
     state: () => ({
@@ -9,10 +10,7 @@ export const useMessageStore = defineStore('messages', {
         async loadMessages(chatId) {
             if (this.messagesByChat[chatId]) return
 
-            const response = await fetch(`/api/chats/history/${chatId}`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
-            })
-            this.messagesByChat[chatId] = await response.json()
+            this.messagesByChat[chatId] = await chatsApi.getChatHistory(chatId)
         },
 
         addMessage(chatId, message) {

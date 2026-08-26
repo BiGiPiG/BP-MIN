@@ -5,6 +5,7 @@
 
 import {ref, watch} from 'vue'
 import {useDebounceFn} from '@vueuse/core'
+import {usersApi} from '@/api'
 
 // ─────────────────────────────────────
 // Props & Emits
@@ -14,10 +15,6 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: 'Search users...'
-  },
-  apiUrl: {
-    type: String,
-    default: '/api/users/search'
   }
 })
 
@@ -52,26 +49,7 @@ const performSearch = useDebounceFn(async (query) => {
   error.value = null
 
   try {
-    const params = new URLSearchParams()
-    params.append('searchTerm', trimmedQuery)
-
-    const response = await fetch(`/api/users/search?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'Content-Type': 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      console.error('HTTP error!', response.status)
-      error.value = 'Failed to load users'
-      searchResults.value = []
-      isLoading.value = false
-      return
-    }
-
-    searchResults.value = await response.json()
+    searchResults.value = await usersApi.searchUsers(trimmedQuery)
   } catch (err) {
     console.error('Search error:', err)
     error.value = 'Failed to load users'

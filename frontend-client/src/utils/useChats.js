@@ -1,5 +1,6 @@
 // utils/useChats.js
 import { ref } from 'vue'
+import { chatsApi } from '@/api'
 
 export function useChats() {
     const chats = ref([])
@@ -7,27 +8,12 @@ export function useChats() {
     const error = ref(null)
 
     const fetchChats = async () => {
-        const accessToken = localStorage.getItem('accessToken')
         loading.value = true
         error.value = null
 
         try {
-            const response = await fetch("/api/chats", {
-                method: "GET",
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-            }
-
-            const data = await response.json()
-
+            const data = await chatsApi.getChats()
             chats.value = Array.isArray(data) ? data : []
-
         } catch (err) {
             error.value = err
             chats.value = []
@@ -38,27 +24,11 @@ export function useChats() {
     }
 
     const createChat = async (chatData) => {
-        const accessToken = localStorage.getItem('accessToken')
         loading.value = true
         error.value = null
 
         try {
-            const response = await fetch('/api/chats/create', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(chatData)
-            });
-
-            if (!response.ok) {
-                const errorMsg = await response.text()
-                throw new Error(`HTTP ${response.status}: ${errorMsg || response.statusText}`)
-            }
-
-            const newChat = await response.json()
-            return newChat
+            return await chatsApi.createChat(chatData)
         } catch (err) {
             error.value = err
             console.error('Failed to create chat', err)
