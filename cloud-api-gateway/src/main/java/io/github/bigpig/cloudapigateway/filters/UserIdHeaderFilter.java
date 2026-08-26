@@ -1,74 +1,89 @@
 package io.github.bigpig.cloudapigateway.filters;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.github.bigpig.cloudapigateway.error.ApiErrorCode;
+import io.github.bigpig.cloudapigateway.error.GatewayException;
+import io.github.bigpig.cloudapigateway.util.InternalHeaders;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.annotation.Order;
-import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.Optional;
 
+/**
+ * Превращает проверенный JWT в заголовок {@link InternalHeaders#USER_ID} для сервисов
+ * за gateway: сами они про JWT ничего не знают и берут пользователя из заголовка.
+ * <p>
+ * Схема верна ровно до тех пор, пока в сервис нельзя попасть в обход gateway.
+ */
+@Slf4j
 @Component
 @Order(-99)
 public class UserIdHeaderFilter implements GlobalFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(UserIdHeaderFilter.class);
+    private static final String USER_ID_CLAIM = "userId";
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        log.info(">>> Filter started for path: {}", exchange.getRequest().getPath());
+
+        ServerWebExchange sanitized = stripClientUserId(exchange);
 
         return ReactiveSecurityContextHolder.getContext()
-                .map(Optional::of)
+                .map(context -> Optional.ofNullable(context.getAuthentication()))
                 .defaultIfEmpty(Optional.empty())
-                .flatMap(optCtx -> {
-                    if (optCtx.isEmpty()) {
-                        log.debug("<<< No SecurityContext found. Passing through.");
-                        return chain.filter(exchange);
-                    }
+                .flatMap(authentication -> propagate(authentication, sanitized, chain));
+    }
 
-                    SecurityContext securityContext = optCtx.get();
-                    Authentication authentication = securityContext.getAuthentication();
+    private Mono<Void> propagate(Optional<Authentication> maybeAuthentication,
+                                 ServerWebExchange exchange,
+                                 GatewayFilterChain chain) {
 
-                    if (authentication == null || !authentication.isAuthenticated()) {
-                        log.debug("<<< Not authenticated. Passing through.");
-                        return chain.filter(exchange);
-                    }
+        Authentication authentication = maybeAuthentication
+                .filter(Authentication::isAuthenticated)
+                .orElse(null);
 
-                    Object principal = authentication.getPrincipal();
+        if (authentication == null) {
+            // permitAll-маршрут (/api/auth/**): security пропустила запрос без аутентификации,
+            // сервису идентичность не нужна.
+            return chain.filter(exchange);
+        }
 
-                    if (!(principal instanceof Jwt jwt)) {
-                        log.debug("<<< Principal is not JWT. Passing through.");
-                        return chain.filter(exchange);
-                    }
+        if (!(authentication.getPrincipal() instanceof Jwt jwt)) {
+            return Mono.error(new GatewayException(HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_INVALID,
+                    "Authentication is not backed by a JWT"));
+        }
 
-                    String userId = jwt.getClaimAsString("userId");
+        String userId = jwt.getClaimAsString(USER_ID_CLAIM);
+        if (!StringUtils.hasText(userId)) {
+            return Mono.error(new GatewayException(HttpStatus.UNAUTHORIZED, ApiErrorCode.TOKEN_INVALID,
+                    String.format("Token carries no %s claim", USER_ID_CLAIM)));
+        }
 
-                    if (userId == null) {
-                        log.info("<<< userId not found in token. Passing through.");
-                        return chain.filter(exchange);
-                    }
+        log.debug("Resolved {} for {}", InternalHeaders.USER_ID, exchange.getRequest().getPath());
 
-                    log.info(">>> Adding header 'userId': {}", userId);
+        return chain.filter(exchange.mutate()
+                .request(request -> request.header(InternalHeaders.USER_ID, userId))
+                .build());
+    }
 
-                    ServerHttpRequest mutatedRequest = exchange.getRequest()
-                            .mutate()
-                            .header("User-Id", userId)
-                            .build();
+    private ServerWebExchange stripClientUserId(ServerWebExchange exchange) {
+        if (!exchange.getRequest().getHeaders().containsHeader(InternalHeaders.USER_ID)) {
+            return exchange;
+        }
 
-                    ServerWebExchange mutatedExchange = exchange.mutate()
-                            .request(mutatedRequest)
-                            .build();
+        log.warn("Client sent {} for {}, header dropped",
+                InternalHeaders.USER_ID, exchange.getRequest().getPath());
 
-                    return chain.filter(mutatedExchange);
-                });
+        return exchange.mutate()
+                .request(request -> request.headers(headers -> headers.remove(InternalHeaders.USER_ID)))
+                .build();
     }
 }

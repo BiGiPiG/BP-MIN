@@ -15,6 +15,14 @@ info:
     Real-time часть API (STOMP поверх WebSocket) сюда не входит —
     OpenAPI её не описывает. См. `api/websocket.md`.
 
+    **Ошибки периметра.** Любой эндпоинт может дополнительно вернуть ответ,
+    сформированный самим gateway, в той же схеме `ErrorResponse`:
+    `401 UNAUTHORIZED` (нет или недействителен токен), `401 TOKEN_INVALID`
+    (подпись сошлась, но пользователя по токену не установить),
+    `503 SERVICE_UNAVAILABLE` (сервис за gateway недоступен),
+    `404 NOT_FOUND` (маршрут не сопоставлен). Отдельно у операций они
+    не перечислены, чтобы не дублировать одно и то же восемь раз.
+
 servers:
   - url: http://localhost:8080
     description: Локальный api-gateway
@@ -552,8 +560,11 @@ components:
           example: Bad Request
         code:
           type: string
-          description: Машиночитаемый код ошибки.
+          description: |
+            Машиночитаемый код ошибки. Первая группа приходит из сервисов,
+            вторая — от самого api-gateway.
           enum:
+            # сервисы
             - VALIDATION_FAILED
             - USERNAME_INVALID
             - EMAIL_INVALID
@@ -561,6 +572,11 @@ components:
             - USER_NOT_FOUND
             - TOKEN_EXPIRED
             - TOKEN_MALFORMED
+            # периметр
+            - UNAUTHORIZED
+            - TOKEN_INVALID
+            - NOT_FOUND
+            - SERVICE_UNAVAILABLE
             - INTERNAL_ERROR
         details:
           description: |

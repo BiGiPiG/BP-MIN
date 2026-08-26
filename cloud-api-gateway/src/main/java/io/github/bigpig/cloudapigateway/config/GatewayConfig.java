@@ -53,10 +53,6 @@ public class GatewayConfig {
                         .filters(f -> f.stripPrefix(2))
                         .uri(USER_SERVICE_PATH))
                 .route(p -> p
-                        .path("/api/profiles/{username}")
-                        .filters(f -> f.stripPrefix(2))
-                        .uri(USER_SERVICE_PATH))
-                .route(p -> p
                         .path("/api/users/search")
                         .filters(f -> f.stripPrefix(2))
                         .uri(USER_SERVICE_PATH))
